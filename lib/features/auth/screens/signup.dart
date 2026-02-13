@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
-import 'signup.dart';
-import 'otp_check.dart';
+import 'login.dart';
 
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+class SignUpPage extends StatelessWidget {
+  const SignUpPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +63,7 @@ class LoginPage extends StatelessWidget {
               const SizedBox(height: 50),
 
               const Text(
-                "Welcome Back",
+                "Welcome Onboard",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
@@ -74,19 +73,24 @@ class LoginPage extends StatelessWidget {
               const SizedBox(height: 6),
 
               Text(
-                "Sign in to continue",
+                "Join Our Family of Solar Experts Today!",
                 style: TextStyle(color: Colors.grey[600]),
               ),
 
               const SizedBox(height: 30),
 
+              // Name
+              _buildTextField("Full Name", Icons.person_outline, authController.nameController),
+
+              const SizedBox(height: 20),
+
               // Email
-              _buildTextField(
-                "Email",
-                Icons.email_outlined,
-                authController.emailController,
-                false,
-              ),
+              _buildTextField("Email", Icons.email_outlined, authController.emailController),
+
+              const SizedBox(height: 20),
+
+              // Phone No
+              _buildTextField("Phone Number", Icons.phone_outlined, authController.phoneController),
 
               const SizedBox(height: 20),
 
@@ -100,30 +104,31 @@ class LoginPage extends StatelessWidget {
 
               const SizedBox(height: 12),
 
+              // Show/Hide Password
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
-                  onTap: () => authController.navigateToForgotPassword(),
-                  child: const Text(
-                    "Forgot Password?",
-                    style: TextStyle(
-                      color: Color(0xFFFF8F00),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  onTap: () => authController.togglePasswordVisibility(),
+                  child: Obx(() => Text(
+                        authController.isPasswordVisible.value ? "Hide Password" : "Show Password",
+                        style: const TextStyle(
+                          color: Color(0xFFFF8F00),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )),
                 ),
               ),
 
               const SizedBox(height: 30),
 
-              // Login Button
+              // Sign Up Button
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: Obx(() => ElevatedButton(
                       onPressed: authController.isLoading.value
                           ? null
-                          : () => authController.login(),
+                          : () => authController.signup(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF8F00),
                         shape: RoundedRectangleBorder(
@@ -141,7 +146,7 @@ class LoginPage extends StatelessWidget {
                               ),
                             )
                           : const Text(
-                              "Sign In",
+                              "Sign Up",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -153,17 +158,17 @@ class LoginPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // Sign Up Link
+              // Sign In Link
               GestureDetector(
-                onTap: () => authController.navigateToSignup(),
+                onTap: () => authController.navigateToLogin(),
                 child: Center(
                   child: Text.rich(
                     TextSpan(
-                      text: "Don't have an account? ",
+                      text: "Already have an account? ",
                       style: TextStyle(color: Colors.grey[600]),
                       children: const [
                         TextSpan(
-                          text: "Sign Up",
+                          text: "Sign In",
                           style: TextStyle(
                             color: Color(0xFFFF8F00),
                             fontWeight: FontWeight.bold,
@@ -179,10 +184,11 @@ class LoginPage extends StatelessWidget {
         ),
       ),
     );
+
   }
 
   static Widget _buildTextField(
-      String hint, IconData icon, TextEditingController controller, bool isObscure) {
+      String hint, IconData icon, TextEditingController controller, [bool isObscure = false]) {
     return TextField(
       controller: controller,
       obscureText: isObscure,

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
-import 'signup.dart';
-import 'otp_check.dart';
+import 'login.dart';
 
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+class OTPCheckPage extends StatelessWidget {
+  const OTPCheckPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +63,7 @@ class LoginPage extends StatelessWidget {
               const SizedBox(height: 50),
 
               const Text(
-                "Welcome Back",
+                "Verify Your Account",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
@@ -74,38 +73,32 @@ class LoginPage extends StatelessWidget {
               const SizedBox(height: 6),
 
               Text(
-                "Sign in to continue",
+                "Enter the 4-digit code sent to your email",
                 style: TextStyle(color: Colors.grey[600]),
               ),
 
               const SizedBox(height: 30),
 
-              // Email
-              _buildTextField(
-                "Email",
-                Icons.email_outlined,
-                authController.emailController,
-                false,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Password
-              Obx(() => _buildTextField(
-                    "Password",
-                    Icons.lock_outline,
-                    authController.passwordController,
-                    !authController.isPasswordVisible.value,
-                  )),
+              // OTP TextField
+              _buildOTPField(authController.otpController),
 
               const SizedBox(height: 12),
 
+              // Resend OTP
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
-                  onTap: () => authController.navigateToForgotPassword(),
+                  onTap: () {
+                    Get.snackbar(
+                      'Info',
+                      'OTP resent successfully',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: Colors.blue.withOpacity(0.8),
+                      colorText: Colors.white,
+                    );
+                  },
                   child: const Text(
-                    "Forgot Password?",
+                    "Resend OTP",
                     style: TextStyle(
                       color: Color(0xFFFF8F00),
                       fontWeight: FontWeight.w500,
@@ -116,14 +109,14 @@ class LoginPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // Login Button
+              // Verify Button
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: Obx(() => ElevatedButton(
                       onPressed: authController.isLoading.value
                           ? null
-                          : () => authController.login(),
+                          : () => authController.verifyOTP(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF8F00),
                         shape: RoundedRectangleBorder(
@@ -141,7 +134,7 @@ class LoginPage extends StatelessWidget {
                               ),
                             )
                           : const Text(
-                              "Sign In",
+                              "Verify",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -153,17 +146,17 @@ class LoginPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // Sign Up Link
+              // Back to Login
               GestureDetector(
-                onTap: () => authController.navigateToSignup(),
+                onTap: () => authController.navigateToLogin(),
                 child: Center(
                   child: Text.rich(
                     TextSpan(
-                      text: "Don't have an account? ",
+                      text: "Remember your password? ",
                       style: TextStyle(color: Colors.grey[600]),
                       children: const [
                         TextSpan(
-                          text: "Sign Up",
+                          text: "Sign In",
                           style: TextStyle(
                             color: Color(0xFFFF8F00),
                             fontWeight: FontWeight.bold,
@@ -181,14 +174,24 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  static Widget _buildTextField(
-      String hint, IconData icon, TextEditingController controller, bool isObscure) {
+  Widget _buildOTPField(TextEditingController controller) {
     return TextField(
       controller: controller,
-      obscureText: isObscure,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 8,
+      ),
+      maxLength: 4,
       decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey),
+        counterText: '',
+        hintText: '0000',
+        hintStyle: TextStyle(
+          color: Colors.grey[400],
+          letterSpacing: 8,
+        ),
         filled: true,
         fillColor: const Color(0xFFF5F5F5),
         contentPadding:
