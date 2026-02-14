@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../screens/login.dart';
 import '../screens/signup.dart';
 import '../screens/otp_check.dart';
+import '../screens/forget_password.dart';
 
 class AuthController extends GetxController {
   // Text editing controllers
@@ -11,6 +12,7 @@ class AuthController extends GetxController {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   final otpController = TextEditingController();
+  final forgotPasswordController = TextEditingController();
 
   // Observable variables
   final isLoading = false.obs;
@@ -93,10 +95,10 @@ class AuthController extends GetxController {
 
   // Verify OTP method
   void verifyOTP() async {
-    if (otpController.text.isEmpty || otpController.text.length != 4) {
+    if (otpController.text.isEmpty || otpController.text.length != 6) {
       Get.snackbar(
         'Error',
-        'Please enter a valid 4-digit OTP',
+        'Please enter a valid 6-digit OTP',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.8),
         colorText: Colors.white,
@@ -135,12 +137,39 @@ class AuthController extends GetxController {
 
   // Navigate to Forgot Password
   void navigateToForgotPassword() {
-    // TODO: Implement forgot password
+    Get.to(() => const ForgetPasswordPage());
+  }
+
+  // Reset Password method
+  void resetPassword() async {
+    if (forgotPasswordController.text.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Please enter your email or contact number',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    isLoading.value = true;
+
+    // Simulate API call
+    await Future.delayed(const Duration(seconds: 2));
+
+    isLoading.value = false;
+
     Get.snackbar(
-      'Info',
-      'Forgot Password feature coming soon',
+      'Success',
+      'OTP sent to your email/phone!',
       snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green.withOpacity(0.8),
+      colorText: Colors.white,
     );
+
+    // Navigate to OTP screen
+    Get.to(() => const OTPCheckPage());
   }
 
   @override
@@ -150,6 +179,7 @@ class AuthController extends GetxController {
     nameController.dispose();
     phoneController.dispose();
     otpController.dispose();
+    forgotPasswordController.dispose();
     super.onClose();
   }
 }

@@ -1,24 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import 'login.dart';
 
-class OTPCheckPage extends StatelessWidget {
+class OTPCheckPage extends StatefulWidget {
   const OTPCheckPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final AuthController authController = Get.put(AuthController());
+  State<OTPCheckPage> createState() => _OTPCheckPageState();
+}
 
+class _OTPCheckPageState extends State<OTPCheckPage> {
+  final AuthController authController = Get.put(AuthController());
+  final List<TextEditingController> _otpControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+
+  @override
+  void dispose() {
+    for (var controller in _otpControllers) {
+      controller.dispose();
+    }
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onOtpChanged(String value, int index) {
+    if (value.length == 1 && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    }
+    
+    // Combine all OTP digits
+    final otp = _otpControllers.map((c) => c.text).join();
+    authController.otpController.text = otp;
+  }
+
+  void _onKeyPress(KeyEvent event, int index) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (_otpControllers[index].text.isEmpty && index > 0) {
+        _focusNodes[index - 1].requestFocus();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => authController.navigateToLogin(),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 60),
+              const SizedBox(height: 20),
 
               // Logo
               Center(
@@ -73,14 +121,14 @@ class OTPCheckPage extends StatelessWidget {
               const SizedBox(height: 6),
 
               Text(
-                "Enter the 4-digit code sent to your email",
+                "Enter the 6-digit code sent to your email",
                 style: TextStyle(color: Colors.grey[600]),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
 
-              // OTP TextField
-              _buildOTPField(authController.otpController),
+              // 6-Digit OTP Fields
+              _buildOTPField(),
 
               const SizedBox(height: 12),
 
@@ -107,7 +155,7 @@ class OTPCheckPage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
 
               // Verify Button
               SizedBox(
@@ -146,27 +194,7 @@ class OTPCheckPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // Back to Login
-              GestureDetector(
-                onTap: () => authController.navigateToLogin(),
-                child: Center(
-                  child: Text.rich(
-                    TextSpan(
-                      text: "Remember your password? ",
-                      style: TextStyle(color: Colors.grey[600]),
-                      children: const [
-                        TextSpan(
-                          text: "Sign In",
-                          style: TextStyle(
-                            color: Color(0xFFFF8F00),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
+            
             ],
           ),
         ),
@@ -174,31 +202,56 @@ class OTPCheckPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOTPField(TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 8,
-      ),
-      maxLength: 4,
-      decoration: InputDecoration(
-        counterText: '',
-        hintText: '0000',
-        hintStyle: TextStyle(
-          color: Colors.grey[400],
-          letterSpacing: 8,
-        ),
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+  Widget _buildOTPField() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(
+        6,
+        (index) => Container(
+          width: 45,
+          height: 55,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          child: KeyboardListener(
+            focusNode: FocusNode(),
+            onKeyEvent: (event) => _onKeyPress(event, index),
+            child: TextField(
+              controller: _otpControllers[index],
+              focusNode: _focusNodes[index],
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLength: 1,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(1),
+              ],
+              decoration: InputDecoration(
+                counterText: '',
+                filled: true,
+                fillColor: const Color(0xFFE0E0E0),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFFF8F00),
+                    width: 2,
+                  ),
+                ),
+              ),
+              onChanged: (value) => _onOtpChanged(value, index),
+            ),
+          ),
         ),
       ),
     );
