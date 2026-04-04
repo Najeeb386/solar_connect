@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'features/auth/screens/login.dart';
+import 'package:solar_connect/features/auth/screens/login.dart';
+import 'package:solar_connect/features/installer/dashboard.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,7 +23,14 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      initialRoute: '/login',
+      getPages: [
+        GetPage(name: '/login', page: () => const LoginPage()),
+        GetPage(
+          name: '/installer-dashboard',
+          page: () => const InstallerDashboard(),
+        ),
+      ],
     );
   }
 }

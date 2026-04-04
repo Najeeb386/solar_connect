@@ -4,6 +4,7 @@ import '../screens/login.dart';
 import '../screens/signup.dart';
 import '../screens/otp_check.dart';
 import '../screens/forget_password.dart';
+import '../../installer/dashboard.dart';
 
 class AuthController extends GetxController {
   // Text editing controllers
@@ -52,7 +53,8 @@ class AuthController extends GetxController {
       colorText: Colors.white,
     );
 
-    // TODO: Navigate to home screen
+    // Navigate to installer dashboard
+    Get.offAll(() => const InstallerDashboard());
   }
 
   // Signup method
