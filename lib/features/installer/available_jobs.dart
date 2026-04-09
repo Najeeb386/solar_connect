@@ -163,7 +163,7 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
             ),
@@ -175,7 +175,7 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                     'Customer',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 12,
                       color: Colors.grey,
                     ),
                   ),
@@ -186,7 +186,7 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                     'Service',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 12,
                       color: Colors.grey,
                     ),
                   ),
@@ -197,7 +197,7 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                     'Location',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 12,
                       color: Colors.grey,
                     ),
                   ),
@@ -208,12 +208,12 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                     'Amount',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 12,
                       color: Colors.grey,
                     ),
                   ),
                 ),
-                SizedBox(width: 80),
+                SizedBox(width: 70),
               ],
             ),
           ),
@@ -223,7 +223,10 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
               itemBuilder: (context, index) {
                 final job = _filteredJobs[index];
                 return Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
                   decoration: const BoxDecoration(
                     border: Border(
                       bottom: BorderSide(color: Color(0xFFEEEEEE)),
@@ -235,7 +238,11 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                         flex: 2,
                         child: Text(
                           job['customer'],
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Expanded(
@@ -244,8 +251,10 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                           job['service'],
                           style: const TextStyle(
                             color: Colors.grey,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                       Expanded(
@@ -254,8 +263,10 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                           job['location'],
                           style: const TextStyle(
                             color: Colors.grey,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                       Expanded(
@@ -265,26 +276,29 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Color(0xFFFF8F00),
+                            fontSize: 13,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       SizedBox(
-                        width: 80,
+                        width: 70,
                         child: ElevatedButton(
                           onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF8F00),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
+                              horizontal: 4,
                               vertical: 6,
                             ),
+                            minimumSize: const Size(0, 32),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           child: const Text(
                             'Apply',
-                            style: TextStyle(fontSize: 12, color: Colors.white),
+                            style: TextStyle(fontSize: 11, color: Colors.white),
                           ),
                         ),
                       ),

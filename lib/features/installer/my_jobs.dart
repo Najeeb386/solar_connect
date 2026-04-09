@@ -15,6 +15,9 @@ class _MyJobsPageState extends State<MyJobsPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -135,25 +138,15 @@ class _MyJobsPageState extends State<MyJobsPage>
         ),
         child: Column(
           children: [
-            Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: const Color(0xFFFF8F00),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey,
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'All'),
-                  Tab(text: 'Active'),
-                  Tab(text: 'Completed'),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  _buildTabButton('All', 0),
+                  const SizedBox(width: 8),
+                  _buildTabButton('Active', 1),
+                  const SizedBox(width: 8),
+                  _buildTabButton('Completed', 2),
                 ],
               ),
             ),
@@ -168,6 +161,35 @@ class _MyJobsPageState extends State<MyJobsPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String label, int index) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _tabController.animateTo(index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: _tabController.index == index
+                ? const Color(0xFFFF8F00)
+                : const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: _tabController.index == index
+                    ? Colors.white
+                    : Colors.grey,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ),
       ),
     );

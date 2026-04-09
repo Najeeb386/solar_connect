@@ -4,37 +4,44 @@ import 'available_jobs.dart';
 import 'my_jobs.dart';
 import 'my_profile.dart';
 import 'wallet.dart';
+import 'controllers/installer_controller.dart';
 
-class InstallerDashboard extends StatefulWidget {
+final List<Widget> _pages = [
+  const DashboardHome(),
+  const AvailableJobsPage(),
+  const MyJobsPage(),
+  const MyProfilePage(),
+  const WalletPage(),
+];
+
+class InstallerDashboard extends StatelessWidget {
   const InstallerDashboard({super.key});
 
   @override
-  State<InstallerDashboard> createState() => _InstallerDashboardState();
-}
-
-class _InstallerDashboardState extends State<InstallerDashboard> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = [
-    const DashboardHome(),
-    const AvailableJobsPage(),
-    const MyJobsPage(),
-    const MyProfilePage(),
-    const WalletPage(),
-  ];
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF5F5F5),
-      drawer: _buildDrawer(),
-      body: _pages[_currentIndex],
+    final InstallerController controller = Get.find<InstallerController>();
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          if (controller.currentIndex.value != 0) {
+            controller.changePage(0);
+          }
+        }
+      },
+      child: Obx(
+        () => Scaffold(
+          key: GlobalKey<ScaffoldState>(),
+          backgroundColor: const Color(0xFFF5F5F5),
+          drawer: _buildDrawer(context, controller),
+          body: _pages[controller.currentIndex.value],
+        ),
+      ),
     );
   }
 
-  Widget _buildDrawer() {
+  Widget _buildDrawer(BuildContext context, InstallerController controller) {
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -88,11 +95,51 @@ class _InstallerDashboardState extends State<InstallerDashboard> {
               ),
             ),
             const SizedBox(height: 10),
-            _buildDrawerItem(0, Icons.dashboard, 'Dashboard'),
-            _buildDrawerItem(1, Icons.work, 'Available Jobs'),
-            _buildDrawerItem(2, Icons.assignment, 'My Jobs'),
-            _buildDrawerItem(3, Icons.person, 'My Profile'),
-            _buildDrawerItem(4, Icons.account_balance_wallet, 'Wallet'),
+            Obx(
+              () => _buildDrawerItem(
+                0,
+                Icons.dashboard,
+                'Dashboard',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                1,
+                Icons.work,
+                'Available Jobs',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                2,
+                Icons.assignment,
+                'My Jobs',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                3,
+                Icons.person,
+                'My Profile',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                4,
+                Icons.account_balance_wallet,
+                'Wallet',
+                controller,
+                context,
+              ),
+            ),
             const Spacer(),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -113,8 +160,14 @@ class _InstallerDashboardState extends State<InstallerDashboard> {
     );
   }
 
-  Widget _buildDrawerItem(int index, IconData icon, String title) {
-    final isSelected = _currentIndex == index;
+  Widget _buildDrawerItem(
+    int index,
+    IconData icon,
+    String title,
+    InstallerController controller,
+    BuildContext context,
+  ) {
+    final isSelected = controller.currentIndex.value == index;
     return ListTile(
       leading: Icon(
         icon,
@@ -128,9 +181,9 @@ class _InstallerDashboardState extends State<InstallerDashboard> {
         ),
       ),
       selected: isSelected,
-      selectedTileColor: const Color(0xFFFF8F00).withOpacity(0.1),
+      selectedTileColor: const Color(0xFFFF8F00).withValues(alpha: 0.1),
       onTap: () {
-        setState(() => _currentIndex = index);
+        controller.changePage(index);
         Navigator.pop(context);
       },
     );
@@ -176,7 +229,7 @@ class DashboardHome extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFFF8F00).withOpacity(0.1),
+                color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.menu, color: Color(0xFFFF8F00)),
@@ -233,7 +286,9 @@ class DashboardHome extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E0),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFF8F00).withOpacity(0.3)),
+        border: Border.all(
+          color: const Color(0xFFFF8F00).withValues(alpha: 0.3),
+        ),
       ),
       child: const Row(
         children: [
@@ -263,7 +318,7 @@ class DashboardHome extends StatelessWidget {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.pending_actions,
-                  iconColor: Color(0xFFFF8F00),
+                  iconColor: const Color(0xFFFF8F00),
                   title: 'Pending Applications',
                   value: '5',
                 ),
@@ -272,7 +327,7 @@ class DashboardHome extends StatelessWidget {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.play_circle_outline,
-                  iconColor: Color(0xFF2196F3),
+                  iconColor: const Color(0xFF2196F3),
                   title: 'Active Jobs',
                   value: '3',
                 ),
@@ -285,7 +340,7 @@ class DashboardHome extends StatelessWidget {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.check_circle_outline,
-                  iconColor: Color(0xFF4CAF50),
+                  iconColor: const Color(0xFF4CAF50),
                   title: 'Completed Jobs',
                   value: '28',
                 ),
@@ -294,7 +349,7 @@ class DashboardHome extends StatelessWidget {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.account_balance_wallet,
-                  iconColor: Color(0xFF9C27B0),
+                  iconColor: const Color(0xFF9C27B0),
                   title: 'Wallet Balance',
                   value: 'Rs 0',
                 ),
@@ -319,7 +374,7 @@ class DashboardHome extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -332,7 +387,7 @@ class DashboardHome extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: iconColor, size: 20),
@@ -408,7 +463,7 @@ class DashboardHome extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -423,7 +478,7 @@ class DashboardHome extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF8F00).withOpacity(0.1),
+                  color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: const Color(0xFFFF8F00), size: 20),
@@ -482,7 +537,7 @@ class DashboardHome extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF8F00).withOpacity(0.1),
+                      color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
