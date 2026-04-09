@@ -213,7 +213,7 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                     ),
                   ),
                 ),
-                SizedBox(width: 70),
+                SizedBox(width: 80),
               ],
             ),
           ),
@@ -282,13 +282,13 @@ class _AvailableJobsPageState extends State<AvailableJobsPage> {
                         ),
                       ),
                       SizedBox(
-                        width: 70,
+                        width: 80,
                         child: ElevatedButton(
                           onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF8F00),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
+                              horizontal: 8,
                               vertical: 6,
                             ),
                             minimumSize: const Size(0, 32),

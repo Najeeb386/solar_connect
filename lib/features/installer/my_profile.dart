@@ -26,6 +26,9 @@ class _MyProfilePageState extends State<MyProfilePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -195,25 +198,15 @@ class _MyProfilePageState extends State<MyProfilePage>
         ),
         child: Column(
           children: [
-            Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: const Color(0xFFFF8F00),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey,
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'Basic Info'),
-                  Tab(text: 'KYC'),
-                  Tab(text: 'Bank Details'),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  _buildTabButton('Basic Info', 0),
+                  const SizedBox(width: 8),
+                  _buildTabButton('KYC', 1),
+                  const SizedBox(width: 8),
+                  _buildTabButton('Bank Details', 2),
                 ],
               ),
             ),
@@ -228,6 +221,35 @@ class _MyProfilePageState extends State<MyProfilePage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String label, int index) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _tabController.animateTo(index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: _tabController.index == index
+                ? const Color(0xFFFF8F00)
+                : const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: _tabController.index == index
+                    ? Colors.white
+                    : Colors.grey,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ),
       ),
     );

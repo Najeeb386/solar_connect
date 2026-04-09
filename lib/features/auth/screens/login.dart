@@ -21,7 +21,7 @@ class LoginPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 60),
-        
+
                 // Logo
                 Center(
                   child: Container(
@@ -38,49 +38,41 @@ class LoginPage extends StatelessWidget {
                     ),
                   ),
                 ),
-        
+
                 const SizedBox(height: 30),
-        
+
                 const Center(
                   child: Text(
-                    "Solar Connect",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    "Solar Partner",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),
-        
+
                 const SizedBox(height: 8),
-        
+
                 Center(
                   child: Text(
                     "Powering Solar Professionals",
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
-        
+
                 const SizedBox(height: 50),
-        
+
                 const Text(
                   "Welcome Back",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
                 ),
-        
+
                 const SizedBox(height: 6),
-        
+
                 Text(
                   "Sign in to continue",
                   style: TextStyle(color: Colors.grey[600]),
                 ),
-        
+
                 const SizedBox(height: 30),
-        
+
                 // Email
                 _buildTextField(
                   "Email",
@@ -88,19 +80,46 @@ class LoginPage extends StatelessWidget {
                   authController.emailController,
                   false,
                 ),
-        
+
                 const SizedBox(height: 20),
-        
+
                 // Password
-                Obx(() => _buildTextField(
-                      "Password",
-                      Icons.lock_outline,
-                      authController.passwordController,
-                      !authController.isPasswordVisible.value,
-                    )),
-        
+                Obx(
+                  () => TextField(
+                    controller: authController.passwordController,
+                    obscureText: !authController.isPasswordVisible.value,
+                    decoration: InputDecoration(
+                      hintText: "Password",
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: Colors.grey,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          authController.isPasswordVisible.value
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () =>
+                            authController.togglePasswordVisibility(),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                        horizontal: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 12),
-        
+
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
@@ -114,46 +133,52 @@ class LoginPage extends StatelessWidget {
                     ),
                   ),
                 ),
-        
+
                 const SizedBox(height: 30),
-        
+
                 // Login Button
                 SizedBox(
                   width: double.infinity,
                   height: 55,
-                  child: Obx(() => ElevatedButton(
-                        onPressed: authController.isLoading.value
-                            ? null
-                            : () => authController.login(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF8F00),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          disabledBackgroundColor: const Color(0xFFFF8F00).withOpacity(0.6),
+                  child: Obx(
+                    () => ElevatedButton(
+                      onPressed: authController.isLoading.value
+                          ? null
+                          : () => authController.login(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF8F00),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: authController.isLoading.value
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(Colors.white),
-                                ),
-                              )
-                            : const Text(
-                                "Sign In",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                        disabledBackgroundColor: const Color(
+                          0xFFFF8F00,
+                        ).withOpacity(0.6),
+                      ),
+                      child: authController.isLoading.value
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.white,
                                 ),
                               ),
-                      )),
+                            )
+                          : const Text(
+                              "Sign In",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
-        
+
                 const SizedBox(height: 30),
-        
+
                 // Sign Up Link
                 GestureDetector(
                   onTap: () => authController.navigateToSignup(),
@@ -174,7 +199,7 @@ class LoginPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -184,7 +209,11 @@ class LoginPage extends StatelessWidget {
   }
 
   static Widget _buildTextField(
-      String hint, IconData icon, TextEditingController controller, bool isObscure) {
+    String hint,
+    IconData icon,
+    TextEditingController controller,
+    bool isObscure,
+  ) {
     return TextField(
       controller: controller,
       obscureText: isObscure,
@@ -193,8 +222,10 @@ class LoginPage extends StatelessWidget {
         prefixIcon: Icon(icon, color: Colors.grey),
         filled: true,
         fillColor: const Color(0xFFF5F5F5),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 18,
+          horizontal: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
