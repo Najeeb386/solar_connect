@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'available_jobs.dart';
 import 'my_jobs.dart';
 import 'my_profile.dart';
@@ -239,6 +240,8 @@ class DashboardHome extends StatelessWidget {
               const SizedBox(height: 16),
               _buildKycBanner(),
               const SizedBox(height: 20),
+              _buildOffersSlider(),
+              const SizedBox(height: 20),
               _buildStatsCards(),
               const SizedBox(height: 24),
               _buildBigCards(),
@@ -335,6 +338,131 @@ class DashboardHome extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOffersSlider() {
+    final offers = [
+      {
+        'title': 'Flat 20% Off',
+        'subtitle': 'On Tesla Battery Installation',
+        'brand': 'Tesla',
+        'color': const Color(0xFFE91E63),
+      },
+      {
+        'title': 'Get Rs 500 Bonus',
+        'subtitle': 'On every EcoSolar Panel',
+        'brand': 'EcoSolar',
+        'color': const Color(0xFF2196F3),
+      },
+      {
+        'title': 'Rs 1000 Cashback',
+        'subtitle': 'On Huawei System Install',
+        'brand': 'Huawei',
+        'color': const Color(0xFFFF5722),
+      },
+      {
+        'title': 'Free Installation',
+        'subtitle': 'On Growatt Inverters',
+        'brand': 'Growatt',
+        'color': const Color(0xFF00BCD4),
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Latest Offers',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        CarouselSlider.builder(
+          itemCount: offers.length,
+          options: CarouselOptions(
+            height: 140,
+            enlargeCenterPage: true,
+            viewportFraction: 0.85,
+            autoPlay: true,
+            autoPlayInterval: const Duration(seconds: 4),
+            autoPlayAnimationDuration: const Duration(milliseconds: 800),
+          ),
+          itemBuilder: (context, index, realIndex) {
+            final offer = offers[index];
+            return _buildOfferCard(offer);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOfferCard(Map<String, dynamic> offer) {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [offer['color'], offer['color'].withValues(alpha: 0.7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: offer['color'].withValues(alpha: 0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              offer['brand'],
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                offer['title'],
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                offer['subtitle'],
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
         ],
       ),
