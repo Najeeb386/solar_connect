@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'job_completion.dart';
 
 class MyJobsPage extends StatefulWidget {
   const MyJobsPage({super.key});
@@ -298,6 +299,33 @@ class _MyJobsPageState extends State<MyJobsPage>
                   ),
                 ],
               ),
+              if (job['status'] != 'Completed') ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const JobCompletionPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF8F00),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Mark Complete & Scan QR',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         );

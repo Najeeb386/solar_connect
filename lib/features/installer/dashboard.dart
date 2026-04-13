@@ -4,6 +4,8 @@ import 'available_jobs.dart';
 import 'my_jobs.dart';
 import 'my_profile.dart';
 import 'wallet.dart';
+import 'nearby_shops.dart';
+import 'installer_program.dart';
 import 'controllers/installer_controller.dart';
 
 final List<Widget> _pages = [
@@ -12,6 +14,8 @@ final List<Widget> _pages = [
   const MyJobsPage(),
   const MyProfilePage(),
   const WalletPage(),
+  const NearbyShopsPage(),
+  const InstallerProgramPage(),
 ];
 
 class InstallerDashboard extends StatelessWidget {
@@ -136,6 +140,24 @@ class InstallerDashboard extends StatelessWidget {
                 4,
                 Icons.account_balance_wallet,
                 'Wallet',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                5,
+                Icons.store,
+                'Nearby Shops',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                6,
+                Icons.school,
+                'Installer Program',
                 controller,
                 context,
               ),
