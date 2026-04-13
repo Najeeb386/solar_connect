@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'job_completion.dart';
 
 class MyJobsPage extends StatefulWidget {
   const MyJobsPage({super.key});
@@ -305,10 +304,32 @@ class _MyJobsPageState extends State<MyJobsPage>
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const JobCompletionPage(),
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Complete Job'),
+                          content: const Text('Mark this job as completed?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Job marked as completed!'),
+                                    backgroundColor: Color(0xFF4CAF50),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFF8F00),
+                              ),
+                              child: const Text('Confirm'),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -320,7 +341,7 @@ class _MyJobsPageState extends State<MyJobsPage>
                       ),
                     ),
                     child: const Text(
-                      'Mark Complete & Scan QR',
+                      'Mark as Completed',
                       style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ),

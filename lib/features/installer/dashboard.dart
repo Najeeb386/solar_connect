@@ -6,6 +6,7 @@ import 'my_profile.dart';
 import 'wallet.dart';
 import 'nearby_shops.dart';
 import 'installer_program.dart';
+import 'qr_reward.dart';
 import 'controllers/installer_controller.dart';
 
 final List<Widget> _pages = [
@@ -16,6 +17,7 @@ final List<Widget> _pages = [
   const WalletPage(),
   const NearbyShopsPage(),
   const InstallerProgramPage(),
+  const QRRewardPage(),
 ];
 
 class InstallerDashboard extends StatelessWidget {
@@ -158,6 +160,15 @@ class InstallerDashboard extends StatelessWidget {
                 6,
                 Icons.school,
                 'Installer Program',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                7,
+                Icons.qr_code,
+                'Claim Reward',
                 controller,
                 context,
               ),

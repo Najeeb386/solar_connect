@@ -10,46 +10,58 @@ class InstallerProgramPage extends StatefulWidget {
 class _InstallerProgramPageState extends State<InstallerProgramPage> {
   final List<Map<String, dynamic>> _programs = [
     {
-      'title': 'Solar Panel Installation Basic',
-      'description': 'Learn the fundamentals of solar panel installation',
-      'duration': '2 weeks',
-      'level': 'Beginner',
-      'status': 'Completed',
-      'progress': 100,
+      'brand': 'EcoSolar Panels',
+      'logo': 'E',
+      'color': const Color(0xFF2196F3),
+      'product': 'Solar Panel Installation',
+      'reward': 'Rs 500 per panel',
+      'description': 'Get Rs 500 reward for each EcoSolar panel you install',
+      'status': 'Active',
     },
     {
-      'title': 'Advanced Inverter Setup',
-      'description':
-          'Master advanced inverter configuration and troubleshooting',
-      'duration': '3 weeks',
-      'level': 'Advanced',
-      'status': 'In Progress',
-      'progress': 65,
+      'brand': 'Tesla Powerwall',
+      'logo': 'T',
+      'color': const Color(0xFFE91E63),
+      'product': 'Battery Storage',
+      'reward': 'Rs 2,000 per unit',
+      'description': 'Earn Rs 2,000 for every Tesla Powerwall installation',
+      'status': 'Active',
     },
     {
-      'title': 'Electrical Safety Certification',
-      'description':
-          'Complete electrical safety training for solar installations',
-      'duration': '1 week',
-      'level': 'Intermediate',
-      'status': 'Not Started',
-      'progress': 0,
+      'brand': 'Fronius Inverters',
+      'logo': 'F',
+      'color': const Color(0xFF4CAF50),
+      'product': 'Inverter Setup',
+      'reward': 'Rs 1,500 per unit',
+      'description': 'Get Rs 1,500 reward for Fronius inverter installations',
+      'status': 'Active',
     },
     {
-      'title': 'Energy Storage Systems',
-      'description': 'Battery storage system installation and maintenance',
-      'duration': '2 weeks',
-      'level': 'Advanced',
-      'status': 'Not Started',
-      'progress': 0,
+      'brand': 'Huawei Solar',
+      'logo': 'H',
+      'color': const Color(0xFFFF5722),
+      'product': 'Complete System',
+      'reward': 'Rs 3,000 per system',
+      'description': 'Earn Rs 3,000 for complete Huawei solar system installs',
+      'status': 'Active',
     },
     {
-      'title': 'Customer Service Excellence',
-      'description': 'Best practices for customer interactions',
-      'duration': '1 week',
-      'level': 'Beginner',
-      'status': 'Completed',
-      'progress': 100,
+      'brand': 'Luminous Batteries',
+      'logo': 'L',
+      'color': const Color(0xFF9C27B0),
+      'product': 'Battery Setup',
+      'reward': 'Rs 800 per battery',
+      'description': 'Get Rs 800 for each Luminous battery installation',
+      'status': 'Active',
+    },
+    {
+      'brand': 'Growatt Inverters',
+      'logo': 'G',
+      'color': const Color(0xFF00BCD4),
+      'product': 'Inverter Configuration',
+      'reward': 'Rs 1,200 per unit',
+      'description': 'Earn Rs 1,200 for Growatt inverter installations',
+      'status': 'Active',
     },
   ];
 
@@ -65,7 +77,7 @@ class _InstallerProgramPageState extends State<InstallerProgramPage> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _buildProgressCard(),
+                  _buildStatsCard(),
                   const SizedBox(height: 20),
                   _buildProgramsList(),
                 ],
@@ -97,7 +109,7 @@ class _InstallerProgramPageState extends State<InstallerProgramPage> {
           ),
           const SizedBox(width: 16),
           const Text(
-            'Installer Program',
+            'Installer Programs',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -109,10 +121,8 @@ class _InstallerProgramPageState extends State<InstallerProgramPage> {
     );
   }
 
-  Widget _buildProgressCard() {
-    final completed = _programs.where((p) => p['progress'] == 100).length;
-    final total = _programs.length;
-    final percentage = ((completed / total) * 100).round();
+  Widget _buildStatsCard() {
+    final totalRewards = _programs.length * 1500;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -134,33 +144,66 @@ class _InstallerProgramPageState extends State<InstallerProgramPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Your Progress',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$percentage%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$completed of $total programs completed',
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.card_giftcard, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Available Rewards',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    Text(
+                      'Rs 0.00',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: completed / total,
-              backgroundColor: Colors.white30,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 8,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '6 Brand Programs Available',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Scan to Claim',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -172,12 +215,17 @@ class _InstallerProgramPageState extends State<InstallerProgramPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Available Programs',
+          'Brand Programs',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Install these brand products to earn rewards',
+          style: TextStyle(color: Colors.grey, fontSize: 13),
         ),
         const SizedBox(height: 16),
         ..._programs.map((program) => _buildProgramCard(program)),
@@ -186,33 +234,6 @@ class _InstallerProgramPageState extends State<InstallerProgramPage> {
   }
 
   Widget _buildProgramCard(Map<String, dynamic> program) {
-    Color statusColor;
-    switch (program['status']) {
-      case 'Completed':
-        statusColor = const Color(0xFF4CAF50);
-        break;
-      case 'In Progress':
-        statusColor = const Color(0xFFFF8F00);
-        break;
-      default:
-        statusColor = Colors.grey;
-    }
-
-    Color levelColor;
-    switch (program['level']) {
-      case 'Beginner':
-        levelColor = const Color(0xFF4CAF50);
-        break;
-      case 'Intermediate':
-        levelColor = const Color(0xFFFF8F00);
-        break;
-      case 'Advanced':
-        levelColor = const Color(0xFFF44336);
-        break;
-      default:
-        levelColor = Colors.grey;
-    }
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -227,133 +248,76 @@ class _InstallerProgramPageState extends State<InstallerProgramPage> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  program['title'],
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: program['color'].withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                program['logo'],
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: program['color'],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  program['brand'],
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  program['status'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            program['description'],
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: levelColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  program['level'],
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: levelColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Icon(Icons.schedule, size: 14, color: Colors.grey),
-              const SizedBox(width: 4),
-              Text(
-                program['duration'],
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
-          if (program['progress'] > 0 && program['progress'] < 100) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: program['progress'] / 100,
-                      backgroundColor: const Color(0xFFF5F5F5),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFFFF8F00),
-                      ),
-                      minHeight: 6,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
+                const SizedBox(height: 2),
                 Text(
-                  '${program['progress']}%',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFFF8F00),
+                  program['product'],
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    program['reward'],
+                    style: const TextStyle(
+                      color: Color(0xFF4CAF50),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
-          ],
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed:
-                  program['status'] == 'Not Started' ||
-                      program['status'] == 'In Progress'
-                  ? () {}
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF8F00),
-                disabledBackgroundColor: Colors.grey.shade200,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                program['status'] == 'Completed'
-                    ? 'View Certificate'
-                    : program['status'] == 'In Progress'
-                    ? 'Continue Learning'
-                    : 'Start Program',
-                style: TextStyle(
-                  color:
-                      program['status'] == 'Completed' ||
-                          program['status'] == 'In Progress'
-                      ? Colors.white
-                      : Colors.grey,
-                ),
-              ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: program['color'].withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: program['color'],
             ),
           ),
         ],
