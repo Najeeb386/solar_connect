@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:solar_connect/features/auth/screens/login.dart';
-import 'package:solar_connect/features/installer/dashboard.dart';
-import 'package:solar_connect/features/brand/dashboard.dart';
+import 'package:solar_partner/features/auth/screens/login.dart';
+import 'package:solar_partner/features/brand/dashboard.dart';
+import 'package:solar_partner/features/installer/dashboard.dart';
 
 void main() {
   runApp(const MyApp());

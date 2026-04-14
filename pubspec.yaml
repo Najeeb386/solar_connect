@@ -1,5 +1,5 @@
-name: solar_connect
-description: "A new Flutter project."
+name: solar_partner
+description: "A Solar Partner App built with Flutter, designed to provide users with a seamless experience in managing their solar energy systems. The app offers features such as real-time monitoring of energy production, system performance analytics, and personalized recommendations for optimizing energy usage. With an intuitive interface and robust functionality, Solar Partner empowers users to take control of their solar energy systems and maximize their benefits."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -63,7 +63,15 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+ # ✅ Correct place
+  flutter_launcher_icons: ^0.13.1
 
+
+# ✅ Correct format (OUTSIDE dependencies)
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/solar_connect_icon.png"
 # The following section is specific to Flutter packages.
 flutter:
 
