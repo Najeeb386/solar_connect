@@ -6,6 +6,8 @@ import '../screens/otp_check.dart';
 import '../screens/forget_password.dart';
 import '../../installer/dashboard.dart';
 import '../../installer/controllers/installer_controller.dart';
+import '../../brand/dashboard.dart';
+import '../../brand/controllers/brand_controller.dart';
 
 class AuthController extends GetxController {
   // Text editing controllers
@@ -19,10 +21,15 @@ class AuthController extends GetxController {
   // Observable variables
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
+  final selectedRole = 0.obs; // 0 = Installer, 1 = Brand, 2 = Shopkeeper
 
   // Toggle password visibility
   void togglePasswordVisibility() {
     isPasswordVisible.value = !isPasswordVisible.value;
+  }
+
+  void selectRole(int role) {
+    selectedRole.value = role;
   }
 
   // Login method
@@ -39,13 +46,9 @@ class AuthController extends GetxController {
     }
 
     isLoading.value = true;
-
-    // Simulate API call
     await Future.delayed(const Duration(seconds: 2));
-
     isLoading.value = false;
 
-    // Navigate to home on success
     Get.snackbar(
       'Success',
       'Login Successful!',
@@ -54,9 +57,13 @@ class AuthController extends GetxController {
       colorText: Colors.white,
     );
 
-    // Navigate to installer dashboard
-    Get.put(InstallerController());
-    Get.offAll(() => const InstallerDashboard());
+    if (selectedRole.value == 0) {
+      Get.put(InstallerController());
+      Get.offAll(() => const InstallerDashboard());
+    } else if (selectedRole.value == 1) {
+      Get.put(BrandController());
+      Get.offAll(() => const BrandDashboard());
+    }
   }
 
   // Signup method
