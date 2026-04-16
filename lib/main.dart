@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:solar_partner/features/auth/screens/login.dart';
 import 'package:solar_partner/features/brand/dashboard.dart';
 import 'package:solar_partner/features/installer/dashboard.dart';
+import 'package:solar_partner/features/shopkeeper/dashboard.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,6 +33,10 @@ class MyApp extends StatelessWidget {
           page: () => const InstallerDashboard(),
         ),
         GetPage(name: '/brand-dashboard', page: () => const BrandDashboard()),
+        GetPage(
+          name: '/shopkeeper-dashboard',
+          page: () => const ShopkeeperDashboard(),
+        ),
       ],
     );
   }

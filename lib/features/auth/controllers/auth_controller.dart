@@ -8,6 +8,8 @@ import '../../installer/dashboard.dart';
 import '../../installer/controllers/installer_controller.dart';
 import '../../brand/dashboard.dart';
 import '../../brand/controllers/brand_controller.dart';
+import '../../shopkeeper/dashboard.dart';
+import '../../shopkeeper/controllers/shopkeeper_controller.dart';
 
 class AuthController extends GetxController {
   // Text editing controllers
@@ -63,6 +65,9 @@ class AuthController extends GetxController {
     } else if (selectedRole.value == 1) {
       Get.put(BrandController());
       Get.offAll(() => const BrandDashboard());
+    } else if (selectedRole.value == 2) {
+      Get.put(ShopkeeperController());
+      Get.offAll(() => const ShopkeeperDashboard());
     }
   }
 
