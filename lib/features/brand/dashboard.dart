@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'programs.dart';
+import 'claims.dart';
 import 'announcements.dart';
 import 'manuals.dart';
 import 'analytics.dart';
@@ -11,6 +12,7 @@ import 'controllers/brand_controller.dart';
 final List<Widget> _pages = [
   const BrandDashboardHome(),
   const ProgramsPage(),
+  const ClaimsPage(),
   const AnnouncementsPage(),
   const ManualsPage(),
   const AnalyticsPage(),
@@ -119,6 +121,15 @@ class BrandDashboard extends StatelessWidget {
             Obx(
               () => _buildDrawerItem(
                 2,
+                Icons.receipt_long,
+                'Claims',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                3,
                 Icons.campaign,
                 'Announcements',
                 controller,
@@ -127,7 +138,7 @@ class BrandDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                3,
+                4,
                 Icons.folder,
                 'Manuals',
                 controller,
@@ -136,7 +147,7 @@ class BrandDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                4,
+                5,
                 Icons.analytics,
                 'Analytics',
                 controller,
@@ -145,7 +156,7 @@ class BrandDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                5,
+                6,
                 Icons.person,
                 'My Profile',
                 controller,
@@ -296,50 +307,26 @@ class BrandDashboardHome extends StatelessWidget {
   Widget _buildStatsCards() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  Icons.card_giftcard,
-                  const Color(0xFF2196F3),
-                  'Total Programs',
-                  '3',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  Icons.play_circle,
-                  const Color(0xFF4CAF50),
-                  'Active Programs',
-                  '2',
-                ),
-              ),
-            ],
+          Expanded(
+            child: _buildStatCard(
+              Icons.card_giftcard,
+              const Color(0xFF2196F3),
+              'Total Programs',
+              '3 / 2',
+              'Total / Active',
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  Icons.campaign,
-                  const Color(0xFFFF9800),
-                  'Announcements',
-                  '5',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  Icons.folder,
-                  const Color(0xFF9C27B0),
-                  'Manuals',
-                  '4',
-                ),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              Icons.campaign,
+              const Color(0xFFFF9800),
+              'Announcements / Claims',
+              '5 / 12',
+              'Announcements / Claims',
+            ),
           ),
         ],
       ),
@@ -351,6 +338,7 @@ class BrandDashboardHome extends StatelessWidget {
     Color color,
     String title,
     String value,
+    String subtitle,
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -388,6 +376,11 @@ class BrandDashboardHome extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 10, color: Colors.grey),
+          ),
         ],
       ),
     );

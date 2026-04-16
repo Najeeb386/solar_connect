@@ -23,7 +23,7 @@ class _ProgramsPageState extends State<ProgramsPage> {
       'title': 'Winter Bonus Program',
       'description': 'Bonus for winter installations',
       'reward': 'Rs 1000 bonus',
-      'status': 'Active',
+      'status': 'Claimed',
       'enrollments': 28,
       'startDate': '2025-12-01',
       'endDate': '2026-02-28',
@@ -41,22 +41,38 @@ class _ProgramsPageState extends State<ProgramsPage> {
       'title': 'Battery Installation Reward',
       'description': 'Extra reward for battery setups',
       'reward': 'Rs 800/battery',
-      'status': 'Active',
+      'status': 'Completed',
       'enrollments': 15,
       'startDate': '2025-09-01',
       'endDate': '2025-11-30',
     },
+    {
+      'title': 'Spring Promo',
+      'description': 'Spring season special',
+      'reward': 'Rs 300/panel',
+      'status': 'Active',
+      'enrollments': 22,
+      'startDate': '2026-03-01',
+      'endDate': '2026-05-31',
+    },
   ];
+
+  String _selectedFilter = 'All';
 
   @override
   Widget build(BuildContext context) {
+    final filteredPrograms = _selectedFilter == 'All'
+        ? _programs
+        : _programs.where((p) => p['status'] == _selectedFilter).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(context),
-            Expanded(child: _buildProgramsList()),
+            _buildFilterChips(),
+            Expanded(child: _buildProgramsList(filteredPrograms)),
           ],
         ),
       ),
@@ -67,6 +83,37 @@ class _ProgramsPageState extends State<ProgramsPage> {
         label: const Text(
           'Create Program',
           style: TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final filters = ['All', 'Active', 'Claimed', 'Draft', 'Completed'];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: filters.map((filter) {
+            final isSelected = _selectedFilter == filter;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(filter),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() => _selectedFilter = filter);
+                },
+                selectedColor: const Color(0xFF2196F3).withValues(alpha: 0.2),
+                checkmarkColor: const Color(0xFF2196F3),
+                labelStyle: TextStyle(
+                  color: isSelected ? const Color(0xFF2196F3) : Colors.grey,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
@@ -104,12 +151,13 @@ class _ProgramsPageState extends State<ProgramsPage> {
     );
   }
 
-  Widget _buildProgramsList() {
+  Widget _buildProgramsList([List<Map<String, dynamic>>? programs]) {
+    final list = programs ?? _programs;
     return ListView.builder(
       padding: const EdgeInsets.all(20),
-      itemCount: _programs.length,
+      itemCount: list.length,
       itemBuilder: (context, index) {
-        final program = _programs[index];
+        final program = list[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(16),
