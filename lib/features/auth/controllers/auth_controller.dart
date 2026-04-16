@@ -10,13 +10,18 @@ import '../../brand/dashboard.dart';
 import '../../brand/controllers/brand_controller.dart';
 import '../../shopkeeper/dashboard.dart';
 import '../../shopkeeper/controllers/shopkeeper_controller.dart';
+import 'package:solar_partner/core/services/auth_service.dart';
 
 class AuthController extends GetxController {
+  final AuthService _authService = AuthService();
+
   // Text editing controllers
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
+  final companyNameController = TextEditingController();
   final otpController = TextEditingController();
   final forgotPasswordController = TextEditingController();
 
@@ -41,33 +46,46 @@ class AuthController extends GetxController {
         'Error',
         'Please fill in all fields',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.8),
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
         colorText: Colors.white,
       );
       return;
     }
 
     isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 2));
+    final response = await _authService.login(
+      email: emailController.text,
+      password: passwordController.text,
+    );
     isLoading.value = false;
 
-    Get.snackbar(
-      'Success',
-      'Login Successful!',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green.withOpacity(0.8),
-      colorText: Colors.white,
-    );
+    if (response.success) {
+      Get.snackbar(
+        'Success',
+        'Login Successful!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
 
-    if (selectedRole.value == 0) {
-      Get.put(InstallerController());
-      Get.offAll(() => const InstallerDashboard());
-    } else if (selectedRole.value == 1) {
-      Get.put(BrandController());
-      Get.offAll(() => const BrandDashboard());
-    } else if (selectedRole.value == 2) {
-      Get.put(ShopkeeperController());
-      Get.offAll(() => const ShopkeeperDashboard());
+      if (selectedRole.value == 0) {
+        Get.put(InstallerController());
+        Get.offAll(() => const InstallerDashboard());
+      } else if (selectedRole.value == 1) {
+        Get.put(BrandController());
+        Get.offAll(() => const BrandDashboard());
+      } else if (selectedRole.value == 2) {
+        Get.put(ShopkeeperController());
+        Get.offAll(() => const ShopkeeperDashboard());
+      }
+    } else {
+      Get.snackbar(
+        'Error',
+        response.message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -81,32 +99,81 @@ class AuthController extends GetxController {
         'Error',
         'Please fill in all fields',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.8),
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
         colorText: Colors.white,
       );
       return;
     }
 
-    if (passwordController.text.length < 6) {
+    if (passwordController.text != confirmPasswordController.text) {
       Get.snackbar(
         'Error',
-        'Password must be at least 6 characters',
+        'Passwords do not match',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.8),
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
         colorText: Colors.white,
       );
       return;
     }
 
+    if (passwordController.text.length < 8) {
+      Get.snackbar(
+        'Error',
+        'Password must be at least 8 characters',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Add company name validation for Brand/Shopkeeper
+    if (selectedRole.value != 0 && companyNameController.text.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Company name is required',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    String roleStr = selectedRole.value == 0
+        ? 'installer'
+        : selectedRole.value == 1
+        ? 'brand'
+        : 'shopkeeper';
+
     isLoading.value = true;
-
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-
+    final response = await _authService.register(
+      name: nameController.text,
+      email: emailController.text,
+      phone: phoneController.text,
+      role: roleStr,
+      password: passwordController.text,
+      passwordConfirmation: confirmPasswordController.text,
+    );
     isLoading.value = false;
 
-    // Navigate to OTP screen
-    Get.to(() => const OTPCheckPage());
+    if (response.success) {
+      Get.snackbar(
+        'Success',
+        'Registration successful! Please wait for admin approval.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
+      Get.offAll(() => const LoginPage());
+    } else {
+      Get.snackbar(
+        'Error',
+        response.message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
+    }
   }
 
   // Verify OTP method

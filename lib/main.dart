@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:solar_partner/features/auth/screens/login.dart';
 import 'package:solar_partner/features/brand/dashboard.dart';
 import 'package:solar_partner/features/installer/dashboard.dart';
 import 'package:solar_partner/features/shopkeeper/dashboard.dart';
 
-void main() {
+void main() async {
+  await GetStorage.init();
   runApp(const MyApp());
 }
 

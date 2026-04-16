@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:solar_partner/features/auth/controllers/auth_controller.dart';
 import '../controllers/auth_controller.dart';
 import 'signup.dart';
 import 'otp_check.dart';
@@ -222,7 +223,7 @@ class LoginPage extends StatelessWidget {
 
                 // Sign Up Link
                 GestureDetector(
-                  onTap: () => authController.navigateToSignup(),
+                  onTap: () => Get.to(() => const SignUpPage()),
                   child: Center(
                     child: Text.rich(
                       TextSpan(
