@@ -310,11 +310,10 @@ class BrandService {
       );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
-      // If 403, return more specific error
       if (e.response?.statusCode == 403) {
         return ApiResponse(
           success: false,
-          message: 'Permission denied. Claim may belong to a different brand.',
+          message: 'Unauthorized - please contact admin',
           code: 403,
         );
       }

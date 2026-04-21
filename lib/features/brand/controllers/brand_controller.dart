@@ -760,7 +760,9 @@ class BrandController extends GetxController {
 
   Future<bool> approveProductClaim(int claimId) async {
     try {
+      print('DEBUG: Approving claim $claimId');
       final res = await _service.approveProductClaim(claimId);
+      print('DEBUG: Result success=${res.success}, message=${res.message}');
       if (res.success) {
         Get.snackbar(
           'Approved',
