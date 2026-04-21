@@ -227,7 +227,12 @@ class BrandService {
     return MultipartFile.fromBytes(bytes, filename: filename);
   }
 
-  Future<ApiResponse> createProduct(String name, String series, String description, XFile? image) async {
+  Future<ApiResponse> createProduct(
+    String name,
+    String series,
+    String description,
+    XFile? image,
+  ) async {
     try {
       final photo = await _toMultipart(image);
       final formData = FormData.fromMap({
@@ -243,7 +248,13 @@ class BrandService {
     }
   }
 
-  Future<ApiResponse> updateProduct(int productId, String name, String series, String description, XFile? image) async {
+  Future<ApiResponse> updateProduct(
+    int productId,
+    String name,
+    String series,
+    String description,
+    XFile? image,
+  ) async {
     try {
       final photo = await _toMultipart(image);
       final formData = FormData.fromMap({
@@ -253,7 +264,10 @@ class BrandService {
         'description': description,
         if (photo != null) 'photo': photo,
       });
-      final response = await _client.postFormData('/brand/products/$productId', formData);
+      final response = await _client.postFormData(
+        '/brand/products/$productId',
+        formData,
+      );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
       return ApiResponse.fromDioError(e);
@@ -291,7 +305,10 @@ class BrandService {
 
   Future<ApiResponse> approveProductClaim(int claimId) async {
     try {
-      final response = await _client.post('/brand/product-claims/$claimId/approve');
+      final response = await _client.post(
+        '/brand/product-claims/$claimId/approve',
+        data: {},
+      );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
       return ApiResponse.fromDioError(e);
