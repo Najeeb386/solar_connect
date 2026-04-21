@@ -90,15 +90,21 @@ class BrandController extends GetxController {
       if (res.success && res.data != null) {
         dashboardData.value = Map<String, dynamic>.from(res.data as Map);
       } else {
-        Get.snackbar('Error', res.message ?? 'Failed to load dashboard',
+        Get.snackbar(
+          'Error',
+          res.message ?? 'Failed to load dashboard',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+        );
       }
     } catch (e) {
       isLoading.value = false;
-      Get.snackbar('Error', 'Connection failed',
+      Get.snackbar(
+        'Error',
+        'Connection failed',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withValues(alpha: 0.8));
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
@@ -116,14 +122,20 @@ class BrandController extends GetxController {
           storage.write('user', Map<String, dynamic>.from(userData as Map));
         }
       } else {
-        Get.snackbar('Error', res.message ?? 'Failed to load profile',
+        Get.snackbar(
+          'Error',
+          res.message ?? 'Failed to load profile',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+        );
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load profile',
+      Get.snackbar(
+        'Error',
+        'Failed to load profile',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withValues(alpha: 0.8));
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
@@ -133,10 +145,16 @@ class BrandController extends GetxController {
       await fetchProfile();
       final storage = GetStorage();
       final storedUser = storage.read('user') ?? {};
-      if (data['company_name'] != null) storedUser['name'] = data['company_name'];
+      if (data['company_name'] != null)
+        storedUser['name'] = data['company_name'];
       storage.write('user', storedUser);
-      Get.snackbar('Updated', res.message, snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+      Get.snackbar(
+        'Updated',
+        res.message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
       return true;
     }
     Get.snackbar('Error', res.message, snackPosition: SnackPosition.BOTTOM);
@@ -153,16 +171,22 @@ class BrandController extends GetxController {
         programs.value = res.data as List? ?? [];
       } else {
         if (refresh) {
-          Get.snackbar('Error', res.message ?? 'Failed to load programs',
+          Get.snackbar(
+            'Error',
+            res.message ?? 'Failed to load programs',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+            backgroundColor: Colors.red.withValues(alpha: 0.8),
+          );
         }
       }
     } catch (e) {
       programsLoading.value = false;
-      Get.snackbar('Error', 'Connection failed: $e',
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withValues(alpha: 0.8));
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
@@ -172,18 +196,29 @@ class BrandController extends GetxController {
       if (res.success) {
         fetchPrograms(refresh: true); // refresh list before navigating back
         Get.back(); // auto-back to programs list
-        Get.snackbar('Created', res.message, snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Created',
+          res.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to create program',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to create program',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -194,18 +229,29 @@ class BrandController extends GetxController {
       if (res.success) {
         fetchPrograms(refresh: true); // refresh list before navigating back
         Get.back(); // auto-back to programs list
-        Get.snackbar('Updated', res.message, snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Updated',
+          res.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to update program',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to update program',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -216,19 +262,29 @@ class BrandController extends GetxController {
       if (res.success) {
         await fetchPrograms(refresh: true);
         await fetchDashboard();
-        Get.snackbar('Deleted', 'Program deleted successfully',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Deleted',
+          'Program deleted successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to delete program',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to delete program',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -241,9 +297,12 @@ class BrandController extends GetxController {
       }
       return [];
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load enrollments',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Failed to load enrollments',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return [];
     }
   }
@@ -258,16 +317,22 @@ class BrandController extends GetxController {
         announcements.value = res.data as List? ?? [];
       } else {
         if (refresh) {
-          Get.snackbar('Error', res.message ?? 'Failed to load announcements',
+          Get.snackbar(
+            'Error',
+            res.message ?? 'Failed to load announcements',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+            backgroundColor: Colors.red.withValues(alpha: 0.8),
+          );
         }
       }
     } catch (e) {
       announcementsLoading.value = false;
-      Get.snackbar('Error', 'Connection failed: $e',
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withValues(alpha: 0.8));
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
@@ -276,18 +341,29 @@ class BrandController extends GetxController {
       final res = await _service.createAnnouncement(data);
       if (res.success) {
         await fetchAnnouncements(refresh: true);
-        Get.snackbar('Posted', res.message, snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Posted',
+          res.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to post announcement',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to post announcement',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -297,19 +373,29 @@ class BrandController extends GetxController {
       final res = await _service.deleteAnnouncement(id);
       if (res.success) {
         await fetchAnnouncements(refresh: true);
-        Get.snackbar('Deleted', 'Announcement deleted successfully',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Deleted',
+          'Announcement deleted successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to delete announcement',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to delete announcement',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -324,16 +410,22 @@ class BrandController extends GetxController {
         manuals.value = res.data as List? ?? [];
       } else {
         if (refresh) {
-          Get.snackbar('Error', res.message ?? 'Failed to load manuals',
+          Get.snackbar(
+            'Error',
+            res.message ?? 'Failed to load manuals',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+            backgroundColor: Colors.red.withValues(alpha: 0.8),
+          );
         }
       }
     } catch (e) {
       manualsLoading.value = false;
-      Get.snackbar('Error', 'Connection failed: $e',
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withValues(alpha: 0.8));
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
@@ -342,18 +434,29 @@ class BrandController extends GetxController {
       final res = await _service.uploadManual(title, filePath);
       if (res.success) {
         await fetchManuals(refresh: true);
-        Get.snackbar('Uploaded', res.message, snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Uploaded',
+          res.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to upload manual',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to upload manual',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -363,19 +466,29 @@ class BrandController extends GetxController {
       final res = await _service.deleteManual(id);
       if (res.success) {
         await fetchManuals(refresh: true);
-        Get.snackbar('Deleted', 'Manual deleted successfully',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Deleted',
+          'Manual deleted successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to delete manual',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to delete manual',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -390,57 +503,107 @@ class BrandController extends GetxController {
         products.value = res.data as List? ?? [];
       } else {
         if (refresh) {
-          Get.snackbar('Error', res.message ?? 'Failed to load products',
+          Get.snackbar(
+            'Error',
+            res.message ?? 'Failed to load products',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+            backgroundColor: Colors.red.withValues(alpha: 0.8),
+          );
         }
       }
     } catch (e) {
       productsLoading.value = false;
-      Get.snackbar('Error', 'Connection failed: $e',
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withValues(alpha: 0.8));
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
-  Future<bool> createProduct(String name, String series, String description, XFile? image) async {
+  Future<bool> createProduct(
+    String name,
+    String series,
+    String description,
+    XFile? image,
+  ) async {
     try {
-      final res = await _service.createProduct(name, series, description, image);
+      final res = await _service.createProduct(
+        name,
+        series,
+        description,
+        image,
+      );
       if (res.success) {
         await fetchProducts(refresh: true);
-        Get.snackbar('Created', res.message, snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Created',
+          res.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to create product',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to create product',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
 
-  Future<bool> updateProduct(int productId, String name, String series, String description, XFile? image) async {
+  Future<bool> updateProduct(
+    int productId,
+    String name,
+    String series,
+    String description,
+    XFile? image,
+  ) async {
     try {
-      final res = await _service.updateProduct(productId, name, series, description, image);
+      final res = await _service.updateProduct(
+        productId,
+        name,
+        series,
+        description,
+        image,
+      );
       if (res.success) {
         await fetchProducts(refresh: true);
-        Get.snackbar('Updated', res.message, snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Updated',
+          res.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to update product',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to update product',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -450,40 +613,64 @@ class BrandController extends GetxController {
       final res = await _service.deleteProduct(productId);
       if (res.success) {
         await fetchProducts(refresh: true);
-        Get.snackbar('Deleted', res.message ?? 'Product deleted successfully',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
+        Get.snackbar(
+          'Deleted',
+          res.message ?? 'Product deleted successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to delete product',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to delete product',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
 
-  Future<void> fetchInstallers({String? city, String? skills, String? region}) async {
+  Future<void> fetchInstallers({
+    String? city,
+    String? skills,
+    String? region,
+  }) async {
     try {
       installersLoading.value = true;
-      final res = await _service.getInstallers(city: city, skills: skills, region: region);
+      final res = await _service.getInstallers(
+        city: city,
+        skills: skills,
+        region: region,
+      );
       installersLoading.value = false;
       if (res.success && res.data != null) {
         installers.value = res.data as List? ?? [];
       } else {
-        Get.snackbar('Error', res.message ?? 'Failed to load installers',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+        Get.snackbar(
+          'Error',
+          res.message ?? 'Failed to load installers',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+        );
       }
     } catch (e) {
       installersLoading.value = false;
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
@@ -495,9 +682,12 @@ class BrandController extends GetxController {
       }
       return null;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load installer details',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Failed to load installer details',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return null;
     }
   }
@@ -510,34 +700,47 @@ class BrandController extends GetxController {
       if (res.success && res.data != null) {
         notifications.value = res.data as List? ?? [];
         if (res.pagination != null) {
-          unreadNotifications.value = (res.pagination!['unread_count'] ?? 0) as int;
+          unreadNotifications.value =
+              (res.pagination!['unread_count'] ?? 0) as int;
         }
       } else {
-        Get.snackbar('Error', res.message ?? 'Failed to load notifications',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+        Get.snackbar(
+          'Error',
+          res.message ?? 'Failed to load notifications',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+        );
       }
     } catch (e) {
       notificationsLoading.value = false;
-      Get.snackbar('Error', 'Failed to load notifications',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Failed to load notifications',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
   Future<void> fetchProductClaims({String? status, int? programId}) async {
     try {
       claimsLoading.value = true;
-      final res = await _service.getProductClaims(status: status, programId: programId);
+      final res = await _service.getProductClaims(
+        status: status,
+        programId: programId,
+      );
       claimsLoading.value = false;
       if (res.success && res.data != null) {
         final raw = res.data;
         final list = (raw is Map ? (raw['data'] ?? []) : raw) as List?;
         if (list != null) productClaims.value = list;
       } else {
-        Get.snackbar('Error', res.message ?? 'Failed to load claims',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+        Get.snackbar(
+          'Error',
+          res.message ?? 'Failed to load claims',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+        );
       }
       // Load stats
       final stats = await getProductClaimStats();
@@ -546,9 +749,12 @@ class BrandController extends GetxController {
       }
     } catch (e) {
       claimsLoading.value = false;
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
     }
   }
 
@@ -556,21 +762,42 @@ class BrandController extends GetxController {
     try {
       final res = await _service.approveProductClaim(claimId);
       if (res.success) {
-        Get.snackbar('Approved', res.message ?? 'Claim approved and payment released',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.withValues(alpha: 0.8),
-            colorText: Colors.white);
+        Get.snackbar(
+          'Approved',
+          res.message ?? 'Claim approved and payment released',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
         await fetchProductClaims();
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to approve claim',
+      final errorMsg = res.message ?? 'Failed to approve claim';
+      if (errorMsg.toLowerCase().contains('unauthorized') ||
+          errorMsg.toLowerCase().contains('permission')) {
+        Get.snackbar(
+          'Permission Denied',
+          'You do not have permission to approve claims. Contact admin.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+          backgroundColor: Colors.orange.withValues(alpha: 0.9),
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar(
+          'Error',
+          errorMsg,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+        );
+      }
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }
@@ -585,20 +812,29 @@ class BrandController extends GetxController {
         rejectionReason: rejectionReason,
       );
       if (res.success) {
-        Get.snackbar('Rejected', res.message ?? 'Claim rejected',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.8));
+        Get.snackbar(
+          'Rejected',
+          res.message ?? 'Claim rejected',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+        );
         await fetchProductClaims();
         return true;
       }
-      Get.snackbar('Error', res.message ?? 'Failed to reject claim',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        res.message ?? 'Failed to reject claim',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     } catch (e) {
-      Get.snackbar('Error', 'Connection failed: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      Get.snackbar(
+        'Error',
+        'Connection failed: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+      );
       return false;
     }
   }

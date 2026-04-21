@@ -307,7 +307,6 @@ class BrandService {
     try {
       final response = await _client.post(
         '/brand/product-claims/$claimId/approve',
-        data: {},
       );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
