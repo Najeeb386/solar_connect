@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../network/api_client.dart';
 
 class InstallerService {
@@ -42,14 +44,16 @@ class InstallerService {
 
   Future<ApiResponse> submitKyc({
     required String cnicNumber,
-    required String cnicFrontPath,
-    required String cnicBackPath,
+    required XFile cnicFront,
+    required XFile cnicBack,
   }) async {
     try {
+      final frontBytes = await cnicFront.readAsBytes();
+      final backBytes  = await cnicBack.readAsBytes();
       final formData = FormData.fromMap({
         'cnic_number': cnicNumber,
-        'cnic_front': await MultipartFile.fromFile(cnicFrontPath),
-        'cnic_back': await MultipartFile.fromFile(cnicBackPath),
+        'cnic_front': MultipartFile.fromBytes(frontBytes, filename: cnicFront.name.isNotEmpty ? cnicFront.name : 'front.jpg'),
+        'cnic_back':  MultipartFile.fromBytes(backBytes,  filename: cnicBack.name.isNotEmpty  ? cnicBack.name  : 'back.jpg'),
       });
       final response = await _client.postFormData('/installer/kyc', formData);
       return ApiResponse.fromJson(response.data);
@@ -121,9 +125,21 @@ class InstallerService {
     }
   }
 
-  Future<ApiResponse> completeJob(int jobId) async {
+  Future<ApiResponse> completeJob(int jobId, {String? notes}) async {
     try {
-      final response = await _client.post('/installer/jobs/$jobId/complete');
+      final response = await _client.post(
+        '/installer/jobs/$jobId/complete',
+        data: notes != null ? {'notes': notes} : {},
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> confirmPaymentReceived(int jobId) async {
+    try {
+      final response = await _client.post('/installer/jobs/$jobId/payment-received');
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
       return ApiResponse.fromDioError(e);
@@ -194,10 +210,22 @@ class InstallerService {
     }
   }
 
-  Future<ApiResponse> enrollInProgram(int programId) async {
+  Future<ApiResponse> setDefaultPaymentMethod(int paymentMethodId) async {
+    try {
+      final response = await _client.post(
+        '/installer/payment-methods/$paymentMethodId/set-primary',
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> enrollInProgram(int programId, {required int productId}) async {
     try {
       final response = await _client.post(
         '/installer/programs/$programId/enroll',
+        data: {'product_id': productId},
       );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
@@ -208,6 +236,7 @@ class InstallerService {
   Future<ApiResponse> getNearbyShops({
     double? latitude,
     double? longitude,
+    int radius = 5000,
   }) async {
     try {
       final response = await _client.get(
@@ -215,6 +244,7 @@ class InstallerService {
         queryParams: {
           if (latitude != null) 'latitude': latitude,
           if (longitude != null) 'longitude': longitude,
+          'radius': radius,
         },
       );
       return ApiResponse.fromJson(response.data);
@@ -246,13 +276,65 @@ class InstallerService {
     }
   }
 
-  Future<ApiResponse> uploadProfilePhoto(String filePath) async {
+  Future<ApiResponse> uploadProfilePhoto(XFile image) async {
     try {
+      final bytes = await image.readAsBytes();
+      final filename = image.name.isNotEmpty ? image.name : 'photo.jpg';
       final formData = FormData.fromMap({
-        'profile_photo': await MultipartFile.fromFile(filePath),
+        'profile_photo': MultipartFile.fromBytes(bytes, filename: filename),
       });
       final response = await _client.postFormData(
         '/installer/profile/upload-photo',
+        formData,
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> getProductClaims({
+    String? status,
+    int? programId,
+    int page = 1,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{'page': page};
+      if (status != null && status != 'all') queryParams['status'] = status;
+      if (programId != null) queryParams['program_id'] = programId;
+
+      final response = await _client.get(
+        '/installer/product-claims',
+        queryParams: queryParams,
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> getEnrolledPrograms() async {
+    try {
+      final response = await _client.get('/installer/product-claims/programs/available');
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> submitProductClaim({
+    required int programId,
+    required int productId,
+    required Uint8List imageBytes,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'program_id': programId,
+        'product_id': productId,
+        'barcode_image': MultipartFile.fromBytes(imageBytes, filename: 'barcode.jpg'),
+      });
+      final response = await _client.postFormData(
+        '/installer/product-claims',
         formData,
       );
       return ApiResponse.fromJson(response.data);

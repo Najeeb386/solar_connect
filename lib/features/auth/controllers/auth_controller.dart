@@ -4,12 +4,6 @@ import '../screens/login.dart';
 import '../screens/signup.dart';
 import '../screens/otp_check.dart';
 import '../screens/forget_password.dart';
-import '../../installer/dashboard.dart';
-import '../../installer/controllers/installer_controller.dart';
-import '../../brand/dashboard.dart';
-import '../../brand/controllers/brand_controller.dart';
-import '../../shopkeeper/dashboard.dart';
-import '../../shopkeeper/controllers/shopkeeper_controller.dart';
 import 'package:solar_partner/core/services/auth_service.dart';
 
 class AuthController extends GetxController {
@@ -54,29 +48,41 @@ class AuthController extends GetxController {
 
     isLoading.value = true;
     final response = await _authService.login(
-      email: emailController.text,
-      password: passwordController.text,
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
     );
     isLoading.value = false;
 
     if (response.success) {
+      final userData = response.data['user'];
+      if (userData == null) {
+        Get.snackbar(
+          'Error',
+          'Invalid response from server',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      final userRole = (userData['role']?.toString() ?? 'installer')
+          .toLowerCase()
+          .trim();
+      final userName = userData['name']?.toString() ?? 'User';
+
       Get.snackbar(
         'Success',
-        'Login Successful!',
+        'Welcome $userName!',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withValues(alpha: 0.8),
         colorText: Colors.white,
       );
 
-      if (selectedRole.value == 0) {
-        Get.put(InstallerController());
-        Get.offAll(() => const InstallerDashboard());
-      } else if (selectedRole.value == 1) {
-        Get.put(BrandController());
-        Get.offAll(() => const BrandDashboard());
-      } else if (selectedRole.value == 2) {
-        Get.put(ShopkeeperController());
-        Get.offAll(() => const ShopkeeperDashboard());
+      if (userRole == 'brand') {
+        Get.offAllNamed('/brand-dashboard');
+      } else if (userRole == 'shopkeeper') {
+        Get.offAllNamed('/shopkeeper-dashboard');
+      } else {
+        Get.offAllNamed('/installer-dashboard');
       }
     } else {
       Get.snackbar(
@@ -147,31 +153,62 @@ class AuthController extends GetxController {
 
     isLoading.value = true;
     final response = await _authService.register(
-      name: nameController.text,
-      email: emailController.text,
-      phone: phoneController.text,
+      name: (roleStr == 'brand' || roleStr == 'shopkeeper')
+          ? companyNameController.text.trim()
+          : nameController.text.trim(),
+      email: emailController.text.trim(),
+      phone: phoneController.text.trim(),
       role: roleStr,
-      password: passwordController.text,
-      passwordConfirmation: confirmPasswordController.text,
+      password: passwordController.text.trim(),
+      passwordConfirmation: confirmPasswordController.text.trim(),
     );
     isLoading.value = false;
 
     if (response.success) {
+      final userData = response.data['user'];
+      if (userData == null) {
+        Get.snackbar(
+          'Error',
+          'Invalid response from server',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      final rawRole = userData['role']?.toString() ?? 'installer';
+      final userRole = rawRole.toLowerCase().trim();
+      final userName = userData['name']?.toString() ?? 'User';
+
       Get.snackbar(
         'Success',
-        'Registration successful! Please wait for admin approval.',
+        'Welcome $userName!',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withValues(alpha: 0.8),
         colorText: Colors.white,
       );
-      Get.offAll(() => const LoginPage());
+
+      switch (userRole) {
+        case 'installer':
+          Get.offAllNamed('/installer-dashboard');
+          break;
+        case 'brand':
+          Get.offAllNamed('/brand-dashboard');
+          break;
+        case 'shopkeeper':
+          Get.offAllNamed('/shopkeeper-dashboard');
+          break;
+        default:
+          Get.offAllNamed('/installer-dashboard');
+      }
     } else {
+      // Show error from server (validation, duplicate email, etc.)
       Get.snackbar(
-        'Error',
-        response.message,
+        'Registration Failed',
+        response.message.isNotEmpty ? response.message : 'Something went wrong. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withValues(alpha: 0.8),
         colorText: Colors.white,
+        duration: const Duration(seconds: 4),
       );
     }
   }
@@ -183,7 +220,7 @@ class AuthController extends GetxController {
         'Error',
         'Please enter a valid 6-digit OTP',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.8),
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
         colorText: Colors.white,
       );
       return;
@@ -200,7 +237,7 @@ class AuthController extends GetxController {
       'Success',
       'Account Verified Successfully!',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green.withOpacity(0.8),
+      backgroundColor: Colors.green.withValues(alpha: 0.8),
       colorText: Colors.white,
     );
 
@@ -224,43 +261,47 @@ class AuthController extends GetxController {
   }
 
   // Reset Password method
-  void resetPassword() async {
-    if (forgotPasswordController.text.isEmpty) {
+  Future<void> resetPassword() async {
+    if (emailController.text.isEmpty) {
       Get.snackbar(
         'Error',
-        'Please enter your email or contact number',
+        'Please enter your email',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.8),
-        colorText: Colors.white,
       );
       return;
     }
-
     isLoading.value = true;
+    // Note: OTP/forgot password API not yet on backend, show friendly message
+    await Future.delayed(const Duration(seconds: 1));
+    isLoading.value = false;
+    Get.snackbar(
+      'Email Sent',
+      'If this email is registered, you will receive reset instructions.',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 4),
+    );
+    Get.to(() => const OTPCheckPage());
+  }
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-
+  void logout() async {
+    isLoading.value = true;
+    await _authService.logout();
     isLoading.value = false;
 
-    Get.snackbar(
-      'Success',
-      'OTP sent to your email/phone!',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green.withOpacity(0.8),
-      colorText: Colors.white,
-    );
+    emailController.clear();
+    passwordController.clear();
 
-    // Navigate to OTP screen
-    Get.to(() => const OTPCheckPage());
+    Get.offAll(() => const LoginPage());
   }
 
   @override
   void onClose() {
     emailController.dispose();
     passwordController.dispose();
+    confirmPasswordController.dispose();
     nameController.dispose();
     phoneController.dispose();
+    companyNameController.dispose();
     otpController.dispose();
     forgotPasswordController.dispose();
     super.onClose();

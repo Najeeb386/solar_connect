@@ -60,7 +60,15 @@ class ApiClient {
   }
 
   Future<Response> postFormData(String path, FormData data) async {
-    return await _dio.post(path, data: data);
+    return await _dio.post(
+      path,
+      data: data,
+      options: Options(
+        // Let Dio set the correct multipart/form-data boundary automatically
+        contentType: 'multipart/form-data',
+        headers: {'Accept': 'application/json'},
+      ),
+    );
   }
 
   void setToken(String token) {
@@ -93,6 +101,7 @@ class ApiResponse {
   final bool success;
   final String message;
   final dynamic data;
+  final Map<String, dynamic>? pagination;
   final List<dynamic>? errors;
   final int code;
 
@@ -100,6 +109,7 @@ class ApiResponse {
     required this.success,
     required this.message,
     this.data,
+    this.pagination,
     this.errors,
     required this.code,
   });
@@ -109,6 +119,9 @@ class ApiResponse {
       success: json['success'] ?? false,
       message: json['message'] ?? '',
       data: json['data'],
+      pagination: json['pagination'] != null
+          ? Map<String, dynamic>.from(json['pagination'] as Map)
+          : null,
       errors: json['errors'],
       code: json['code'] ?? 0,
     );
@@ -123,7 +136,9 @@ class ApiResponse {
       final responseData = e.response!.data;
       if (responseData is Map<String, dynamic>) {
         message = responseData['message'] ?? message;
-        errors = responseData['errors'];
+        // Guard: errors must be a Map, not an int/string
+        final raw = responseData['errors'];
+        errors = (raw is Map<String, dynamic>) ? raw : null;
         code = e.response!.statusCode ?? 500;
       }
     } else {

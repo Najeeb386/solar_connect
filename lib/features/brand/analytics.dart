@@ -1,31 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'controllers/brand_controller.dart';
 
 class AnalyticsPage extends StatelessWidget {
   const AnalyticsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final BrandController controller = Get.find<BrandController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, controller),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStatsCards(),
-                    const SizedBox(height: 24),
-                    _buildEnrollmentChart(),
-                    const SizedBox(height: 24),
-                    _buildTopPrograms(),
-                  ],
-                ),
-              ),
+              child: Obx(() {
+                if (controller.isLoading.value && controller.dashboardData.isEmpty) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+                }
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await controller.fetchDashboard();
+                    await controller.fetchPrograms(refresh: true);
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildStatsCards(controller),
+                        const SizedBox(height: 24),
+                        _buildTopPrograms(controller),
+                        const SizedBox(height: 24),
+                        _buildClaimsSummary(controller),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ),
           ],
         ),
@@ -33,7 +48,7 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, BrandController controller) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(color: Colors.white),
@@ -52,87 +67,91 @@ class AnalyticsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          const Text(
-            'Analytics',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+          const Expanded(
+            child: Text('Analytics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
           ),
+          Obx(() => controller.isLoading.value
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2196F3)))
+              : IconButton(
+                  icon: const Icon(Icons.refresh, color: Color(0xFF2196F3)),
+                  onPressed: () async {
+                    await controller.fetchDashboard();
+                    await controller.fetchPrograms(refresh: true);
+                  },
+                )),
         ],
       ),
     );
   }
 
-  Widget _buildStatsCards() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                Icons.card_giftcard,
-                const Color(0xFF2196F3),
-                'Total Programs',
-                '3',
+  Widget _buildStatsCards(BrandController controller) {
+    return Obx(() {
+      final data = controller.dashboardData;
+
+      final totalPrograms = data['programs_count'] ?? data['total_programs'] ?? controller.programs.length;
+      final activePrograms = data['active_programs_count'] ?? data['active_programs'] ?? 0;
+      final enrolledInstallers = data['enrolled_installers_count'] ?? data['total_enrollments'] ?? 0;
+      final announcementsCount = data['announcements_count'] ?? data['total_announcements'] ?? controller.announcements.length;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  Icons.card_giftcard,
+                  const Color(0xFF2196F3),
+                  'Total Programs',
+                  '$totalPrograms',
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                Icons.play_circle,
-                const Color(0xFF4CAF50),
-                'Active Programs',
-                '2',
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  Icons.play_circle,
+                  const Color(0xFF4CAF50),
+                  'Active Programs',
+                  '$activePrograms',
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                Icons.people,
-                const Color(0xFFFF9800),
-                'Total Enrollments',
-                '88',
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  Icons.people,
+                  const Color(0xFFFF9800),
+                  'Total Enrollments',
+                  '$enrolledInstallers',
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                Icons.campaign,
-                const Color(0xFF9C27B0),
-                'Announcements',
-                '5',
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  Icons.campaign,
+                  const Color(0xFF9C27B0),
+                  'Announcements',
+                  '$announcementsCount',
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
-    );
+            ],
+          ),
+        ],
+      );
+    });
   }
 
-  Widget _buildStatCard(
-    IconData icon,
-    Color color,
-    String title,
-    String value,
-  ) {
+  Widget _buildStatCard(IconData icon, Color color, String title, String value) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -141,21 +160,11 @@ class AnalyticsPage extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
+          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 4),
           Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
@@ -163,107 +172,47 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEnrollmentChart() {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    final values = [12, 18, 15, 22, 28, 35];
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
+  Widget _buildTopPrograms(BrandController controller) {
+    return Obx(() {
+      final programs = controller.programs;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Enrollments — Last 6 Months',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Monthly installer enrollments across all programs',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(6, (index) {
-              final height = (values[index] / maxValue) * 100;
-              return Column(
-                children: [
-                  Container(
-                    width: 30,
-                    height: height,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    months[index],
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ],
-              );
-            }),
-          ),
-        ],
-      ),
-    );
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Programs by Enrollments', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('All your programs ranked by enrollment count', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 16),
+            if (programs.isEmpty)
+              const Text('No programs yet', style: TextStyle(color: Colors.grey))
+            else
+              ...programs.map((prog) {
+                final p = prog as Map;
+                final count = p['enrolled_count'] ?? 0;
+                final title = p['title']?.toString() ?? 'Untitled';
+                final isActive = p['is_active'] == true && p['is_published'] == true;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildProgramRow(title, count, isActive),
+                );
+              }),
+          ],
+        ),
+      );
+    });
   }
 
-  Widget _buildTopPrograms() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Top Programs by Enrollments',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildProgramRow(
-            'Summer Incentive 2025',
-            45,
-            const Color(0xFF2196F3),
-          ),
-          const SizedBox(height: 12),
-          _buildProgramRow('Winter Bonus Program', 28, const Color(0xFF2196F3)),
-          const SizedBox(height: 12),
-          _buildProgramRow(
-            'Battery Installation Reward',
-            15,
-            const Color(0xFF2196F3),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgramRow(String name, int enrollments, Color color) {
+  Widget _buildProgramRow(String name, dynamic enrollments, bool isActive) {
+    const color = Color(0xFF2196F3);
     return Row(
       children: [
         Container(
@@ -273,31 +222,85 @@ class AnalyticsPage extends StatelessWidget {
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(
-            Icons.card_giftcard,
-            color: Color(0xFF2196F3),
-            size: 20,
-          ),
+          child: const Icon(Icons.card_giftcard, color: color, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+              Text(isActive ? 'Active' : 'Inactive', style: TextStyle(fontSize: 11, color: isActive ? const Color(0xFF4CAF50) : Colors.grey)),
+            ],
           ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '$enrollments',
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
-          ),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+          child: Text('$enrollments', style: const TextStyle(fontWeight: FontWeight.bold, color: color)),
         ),
       ],
+    );
+  }
+
+  Widget _buildClaimsSummary(BrandController controller) {
+    return Obx(() {
+      final stats = controller.claimStats;
+      final pending = stats['pending'] ?? 0;
+      final approved = stats['approved'] ?? 0;
+      final rejected = stats['rejected'] ?? 0;
+      final total = (pending is int ? pending : 0) +
+          (approved is int ? approved : 0) +
+          (rejected is int ? rejected : 0);
+
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Claims Overview', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Total: $total', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _claimStatBox('Pending', pending, const Color(0xFFFF9800)),
+                const SizedBox(width: 8),
+                _claimStatBox('Approved', approved, const Color(0xFF4CAF50)),
+                const SizedBox(width: 8),
+                _claimStatBox('Rejected', rejected, Colors.red),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _claimStatBox(String label, dynamic count, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+        child: Column(
+          children: [
+            Text('$count', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: color)),
+          ],
+        ),
+      ),
     );
   }
 }

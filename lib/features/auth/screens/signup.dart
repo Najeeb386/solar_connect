@@ -19,7 +19,20 @@ class SignUpPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.arrow_back, color: Colors.black87),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Center(
                   child: Container(
                     width: 80,
@@ -58,29 +71,32 @@ class SignUpPage extends StatelessWidget {
 
                 // Role Selector
                 Obx(
-                  () => Row(
-                    children: [
-                      _buildRoleChip(
-                        "Installer",
-                        0,
-                        authController.selectedRole.value,
-                        authController,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildRoleChip(
-                        "Brand",
-                        1,
-                        authController.selectedRole.value,
-                        authController,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildRoleChip(
-                        "Shopkeeper",
-                        2,
-                        authController.selectedRole.value,
-                        authController,
-                      ),
-                    ],
+                  () => SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildRoleChip(
+                          "Installer",
+                          0,
+                          authController.selectedRole.value,
+                          authController,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildRoleChip(
+                          "Brand",
+                          1,
+                          authController.selectedRole.value,
+                          authController,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildRoleChip(
+                          "Shopkeeper",
+                          2,
+                          authController.selectedRole.value,
+                          authController,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -158,7 +174,7 @@ class SignUpPage extends StatelessWidget {
                     "Password",
                     Icons.lock_outline,
                     authController.passwordController,
-                    true,
+                    !authController.isPasswordVisible.value,
                     "Min 8 characters",
                   ),
                 ),
@@ -170,7 +186,7 @@ class SignUpPage extends StatelessWidget {
                     "Confirm Password",
                     Icons.lock_outline,
                     authController.confirmPasswordController,
-                    true,
+                    !authController.isPasswordVisible.value,
                     "Repeat password",
                   ),
                 ),

@@ -107,10 +107,15 @@ class ShopkeeperService {
     }
   }
 
-  Future<ApiResponse> releasePayment(int jobId) async {
+  Future<ApiResponse> releasePayment(int jobId,
+      {int? installerId, double? amount}) async {
     try {
       final response = await _client.post(
         '/shopkeeper/jobs/$jobId/release-payment',
+        data: {
+          if (installerId != null) 'installer_id': installerId,
+          if (amount != null) 'amount': amount,
+        },
       );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
@@ -118,11 +123,16 @@ class ShopkeeperService {
     }
   }
 
-  Future<ApiResponse> raiseDispute(int jobId, String reason) async {
+  Future<ApiResponse> raiseDispute(int jobId,
+      {required int installerId, required String reason, String? evidence}) async {
     try {
       final response = await _client.post(
         '/shopkeeper/jobs/$jobId/dispute',
-        data: {'reason': reason},
+        data: {
+          'installer_id': installerId,
+          'reason': reason,
+          if (evidence != null) 'evidence': evidence,
+        },
       );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
@@ -166,7 +176,7 @@ class ShopkeeperService {
   Future<ApiResponse> getNotifications({int page = 1}) async {
     try {
       final response = await _client.get(
-        '/notifications',
+        '/shopkeeper/notifications',
         queryParams: {'page': page},
       );
       return ApiResponse.fromJson(response.data);

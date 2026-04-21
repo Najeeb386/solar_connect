@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'controllers/installer_controller.dart';
 
 class WalletPage extends StatefulWidget {
   const WalletPage({super.key});
@@ -9,24 +10,41 @@ class WalletPage extends StatefulWidget {
 }
 
 class _WalletPageState extends State<WalletPage> {
-  bool _hasClaimedBonus = false;
+  final InstallerController controller = Get.find<InstallerController>();
+
+  @override
+  void initState() {
+    super.initState();
+    if (controller.walletData.isEmpty) {
+      controller.fetchWallet();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 20),
-            _buildBalanceCard(),
-            const SizedBox(height: 20),
-            _buildWelcomeBonus(),
-            const SizedBox(height: 20),
-            _buildTransactionHistory(),
-          ],
-        ),
+        child: Obx(() {
+          if (controller.walletLoading.value && controller.walletData.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFFF8F00)),
+            );
+          }
+          return RefreshIndicator(
+            color: const Color(0xFFFF8F00),
+            onRefresh: () => controller.fetchWallet(),
+            child: Column(
+              children: [
+                _buildHeader(context),
+                const SizedBox(height: 20),
+                _buildBalanceCard(context),
+                const SizedBox(height: 20),
+                _buildTransactionHistory(),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
@@ -63,7 +81,10 @@ class _WalletPageState extends State<WalletPage> {
     );
   }
 
-  Widget _buildBalanceCard() {
+  Widget _buildBalanceCard(BuildContext context) {
+    final balance = controller.walletData['balance'] ?? 0.0;
+    final balanceText = 'Rs ${double.tryParse(balance.toString())?.toStringAsFixed(2) ?? '0.00'}';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -93,7 +114,7 @@ class _WalletPageState extends State<WalletPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              _hasClaimedBonus ? 'Rs 500.00' : 'Rs 0.00',
+              balanceText,
               style: const TextStyle(
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
@@ -133,94 +154,15 @@ class _WalletPageState extends State<WalletPage> {
     );
   }
 
-  Widget _buildWelcomeBonus() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.card_giftcard, color: Color(0xFFFF8F00)),
-                SizedBox(width: 8),
-                Text(
-                  'Welcome Bonus',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Claim your free Rs 500 test credit to get started!',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton(
-                onPressed: _hasClaimedBonus
-                    ? null
-                    : () {
-                        setState(() {
-                          _hasClaimedBonus = true;
-                        });
-                        Get.snackbar(
-                          'Success',
-                          'You have claimed Rs 500!',
-                          backgroundColor: const Color(0xFF4CAF50),
-                          colorText: Colors.white,
-                        );
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _hasClaimedBonus
-                      ? Colors.grey
-                      : const Color(0xFFFF8F00),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  _hasClaimedBonus ? 'Claimed' : 'Claim Rs 500',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTransactionHistory() {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,32 +177,77 @@ class _WalletPageState extends State<WalletPage> {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: ListView(
-                  children: [
-                    _buildTransactionItem(
-                      date: '04 Apr 2026',
-                      time: '07:32 AM',
-                      description: 'Withdrawal request',
-                      type: 'Debit',
-                      amount: '-500.00',
-                      balanceAfter: 'Rs 0.00',
-                    ),
-                    _buildTransactionItem(
-                      date: '04 Apr 2026',
-                      time: '07:30 AM',
-                      description: 'Welcome bonus',
-                      type: 'Credit',
-                      amount: '+500.00',
-                      balanceAfter: 'Rs 500.00',
-                    ),
-                  ],
-                ),
+                child: Obx(() {
+                  if (controller.transactions.isEmpty) {
+                    return const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.receipt_long_outlined,
+                              size: 48, color: Colors.grey),
+                          SizedBox(height: 12),
+                          Text(
+                            'No transactions yet',
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: controller.transactions.length,
+                    itemBuilder: (context, index) {
+                      final tx = controller.transactions[index] as Map;
+                      final type = tx['type'] ?? '';
+                      final isCredit = type.toString().toLowerCase() == 'credit';
+                      final amount = tx['amount'] ?? 0;
+                      final amountFormatted = isCredit
+                          ? '+${double.tryParse(amount.toString())?.toStringAsFixed(2) ?? amount}'
+                          : '-${double.tryParse(amount.toString())?.toStringAsFixed(2) ?? amount}';
+                      final description = tx['description'] ?? 'Transaction';
+                      final createdAt = tx['created_at'] ?? '';
+                      final dateParts = _parseDateTime(createdAt.toString());
+
+                      return _buildTransactionItem(
+                        date: dateParts[0],
+                        time: dateParts[1],
+                        description: description.toString(),
+                        type: isCredit ? 'Credit' : 'Debit',
+                        amount: amountFormatted,
+                        balanceAfter: tx['balance_after'] != null
+                            ? 'Rs ${double.tryParse(tx['balance_after'].toString())?.toStringAsFixed(2) ?? tx['balance_after']}'
+                            : '',
+                      );
+                    },
+                  );
+                }),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  List<String> _parseDateTime(String dateTimeStr) {
+    if (dateTimeStr.isEmpty) return ['N/A', ''];
+    try {
+      final dt = DateTime.parse(dateTimeStr).toLocal();
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      final date =
+          '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
+      final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      final time =
+          '${hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} $ampm';
+      return [date, time];
+    } catch (_) {
+      return [dateTimeStr, ''];
+    }
   }
 
   Widget _buildTransactionItem({
@@ -288,11 +275,13 @@ class _WalletPageState extends State<WalletPage> {
                 date,
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
-              const SizedBox(width: 8),
-              Text(
-                time,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
+              if (time.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Text(
+                  time,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -343,10 +332,11 @@ class _WalletPageState extends State<WalletPage> {
                       : const Color(0xFFF44336),
                 ),
               ),
-              Text(
-                balanceAfter,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
+              if (balanceAfter.isNotEmpty)
+                Text(
+                  balanceAfter,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
             ],
           ),
         ],
@@ -356,122 +346,198 @@ class _WalletPageState extends State<WalletPage> {
 
   void _showWithdrawModal(BuildContext context) {
     final amountController = TextEditingController();
+    int? selectedMethodId;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Withdraw Funds',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final balance = controller.walletData['balance'] ?? 0.0;
+          final balanceText =
+              'Rs ${double.tryParse(balance.toString())?.toStringAsFixed(2) ?? '0.00'}';
+          final methods = controller.paymentMethods.toList();
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Available Balance',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _hasClaimedBonus ? 'Rs 500.00' : 'Rs 0.00',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFFF8F00),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Amount (min Rs 500)',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: '500',
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, color: Color(0xFFFF8F00), size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Please link and verify your bank account before withdrawing.',
-                      style: TextStyle(color: Color(0xFFE65100), fontSize: 13),
+                  const Text(
+                    'Withdraw Funds',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Available Balance',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    balanceText,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFFF8F00),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  if (methods.isNotEmpty) ...[
+                    const Text(
+                      'Payment Method',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          hint: const Text('Select payment method'),
+                          value: selectedMethodId,
+                          onChanged: (val) =>
+                              setModalState(() => selectedMethodId = val),
+                          items: methods.map<DropdownMenuItem<int>>((m) {
+                            final map = m as Map;
+                            final id = int.tryParse(map['id'].toString()) ?? 0;
+                            final label = map['type_display'] ??
+                                map['type'] ??
+                                'Account';
+                            final masked = map['account_number_masked'] ??
+                                map['account_number'] ??
+                                '';
+                            return DropdownMenuItem<int>(
+                              value: id,
+                              child: Text(
+                                '$label — $masked',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  const Text(
+                    'Amount (min Rs 500)',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: '500',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (methods.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              color: Color(0xFFFF8F00), size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Please link and verify your bank account before withdrawing.',
+                              style: TextStyle(
+                                  color: Color(0xFFE65100), fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: methods.isEmpty
+                              ? null
+                              : () async {
+                                  final amountVal = double.tryParse(
+                                      amountController.text.trim());
+                                  if (amountVal == null || amountVal < 500) {
+                                    Get.snackbar(
+                                      'Error',
+                                      'Minimum withdrawal amount is Rs 500',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                    );
+                                    return;
+                                  }
+                                  if (selectedMethodId == null) {
+                                    Get.snackbar(
+                                      'Error',
+                                      'Please select a payment method',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                    );
+                                    return;
+                                  }
+                                  Navigator.pop(ctx);
+                                  await controller.withdraw(
+                                      selectedMethodId!, amountVal);
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF8F00),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Confirm Withdraw',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Get.snackbar(
-                        'Success',
-                        'Withdrawal request submitted!',
-                        backgroundColor: const Color(0xFF4CAF50),
-                        colorText: Colors.white,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF8F00),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Confirm Withdraw',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

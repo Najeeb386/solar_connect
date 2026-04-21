@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../network/api_client.dart';
 
 class BrandService {
@@ -198,9 +199,123 @@ class BrandService {
   Future<ApiResponse> getNotifications({int page = 1}) async {
     try {
       final response = await _client.get(
-        '/notifications',
+        '/brand/notifications',
         queryParams: {'page': page},
       );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> getProducts({int page = 1}) async {
+    try {
+      final response = await _client.get(
+        '/brand/products',
+        queryParams: {'page': page},
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<MultipartFile?> _toMultipart(XFile? image) async {
+    if (image == null) return null;
+    final bytes = await image.readAsBytes();
+    final filename = image.name.isNotEmpty ? image.name : 'photo.jpg';
+    return MultipartFile.fromBytes(bytes, filename: filename);
+  }
+
+  Future<ApiResponse> createProduct(String name, String series, String description, XFile? image) async {
+    try {
+      final photo = await _toMultipart(image);
+      final formData = FormData.fromMap({
+        'product_name': name,
+        'product_series': series,
+        'description': description,
+        if (photo != null) 'photo': photo,
+      });
+      final response = await _client.postFormData('/brand/products', formData);
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> updateProduct(int productId, String name, String series, String description, XFile? image) async {
+    try {
+      final photo = await _toMultipart(image);
+      final formData = FormData.fromMap({
+        '_method': 'PUT', // Laravel method spoofing — PUT via multipart POST
+        'product_name': name,
+        'product_series': series,
+        'description': description,
+        if (photo != null) 'photo': photo,
+      });
+      final response = await _client.postFormData('/brand/products/$productId', formData);
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> deleteProduct(int productId) async {
+    try {
+      final response = await _client.delete('/brand/products/$productId');
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> getProductClaims({
+    String? status,
+    int? programId,
+    int page = 1,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{'page': page};
+      if (status != null && status != 'all') queryParams['status'] = status;
+      if (programId != null) queryParams['program_id'] = programId;
+
+      final response = await _client.get(
+        '/brand/product-claims',
+        queryParams: queryParams,
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> approveProductClaim(int claimId) async {
+    try {
+      final response = await _client.post('/brand/product-claims/$claimId/approve');
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> rejectProductClaim({
+    required int claimId,
+    required String rejectionReason,
+  }) async {
+    try {
+      final response = await _client.post(
+        '/brand/product-claims/$claimId/reject',
+        data: {'rejection_reason': rejectionReason},
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> getProductClaimStats() async {
+    try {
+      final response = await _client.get('/brand/product-claims/stats');
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {
       return ApiResponse.fromDioError(e);

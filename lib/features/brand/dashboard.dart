@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'programs.dart';
+import 'products.dart';
 import 'claims.dart';
 import 'announcements.dart';
 import 'manuals.dart';
@@ -12,6 +13,7 @@ import 'controllers/brand_controller.dart';
 final List<Widget> _pages = [
   const BrandDashboardHome(),
   const ProgramsPage(),
+  const ProductsScreen(),
   const ClaimsPage(),
   const AnnouncementsPage(),
   const ManualsPage(),
@@ -83,19 +85,31 @@ class BrandDashboard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Demo Brand',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'brand@solar.test',
-                    style: TextStyle(fontSize: 14, color: Colors.white70),
-                  ),
+                  Obx(() {
+                    final brandName = controller.userProfile['profile']?['company_name']
+                        ?? controller.dashboardData['brand_name']
+                        ?? controller.dashboardData['user']?['name']
+                        ?? 'Brand';
+                    final email = controller.dashboardData['user']?['email'] ?? '';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          brandName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          email,
+                          style: const TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ],
+                    );
+                  }),
                 ],
               ),
             ),
@@ -121,6 +135,15 @@ class BrandDashboard extends StatelessWidget {
             Obx(
               () => _buildDrawerItem(
                 2,
+                Icons.shopping_bag,
+                'Products',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                3,
                 Icons.receipt_long,
                 'Claims',
                 controller,
@@ -129,7 +152,7 @@ class BrandDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                3,
+                4,
                 Icons.campaign,
                 'Announcements',
                 controller,
@@ -138,7 +161,7 @@ class BrandDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                4,
+                5,
                 Icons.folder,
                 'Manuals',
                 controller,
@@ -147,7 +170,7 @@ class BrandDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                5,
+                6,
                 Icons.analytics,
                 'Analytics',
                 controller,
@@ -156,7 +179,7 @@ class BrandDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                6,
+                7,
                 Icons.person,
                 'My Profile',
                 controller,
@@ -218,31 +241,48 @@ class BrandDashboardHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final BrandController controller = Get.find<BrandController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 16),
-              _buildStatsCards(),
-              const SizedBox(height: 20),
-              _buildQuickLinks(context),
-              const SizedBox(height: 20),
-              _buildRecentPrograms(),
-              const SizedBox(height: 20),
-              _buildRecentAnnouncements(),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2196F3)),
+            );
+          }
+          return RefreshIndicator(
+            onRefresh: controller.fetchDashboard,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context, controller),
+                  const SizedBox(height: 16),
+                  _buildStatsCards(controller),
+                  const SizedBox(height: 20),
+                  _buildQuickLinks(context, controller),
+                  const SizedBox(height: 20),
+                  _buildRecentPrograms(controller),
+                  const SizedBox(height: 20),
+                  _buildRecentAnnouncements(controller),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, BrandController controller) {
+    final userData = controller.dashboardData['user'];
+    final userName = userData?['name'] ?? 'Brand';
+    final companyName = userData?['company_name'] ?? '';
+    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'B';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(color: Colors.white),
@@ -261,22 +301,22 @@ class BrandDashboardHome extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Brand Panel',
-                  style: TextStyle(
+                  'Welcome, $companyName',
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Solar Connect',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  userData?['email'] ?? '',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
@@ -288,10 +328,10 @@ class BrandDashboardHome extends StatelessWidget {
               color: const Color(0xFFE3F2FD),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'B',
-                style: TextStyle(
+                initial,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF2196F3),
@@ -304,7 +344,12 @@ class BrandDashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsCards() {
+  Widget _buildStatsCards(BrandController controller) {
+    final totalPrograms = controller.dashboardData['programs_count'] ?? 0;
+    final activePrograms = controller.dashboardData['active_programs_count'] ?? 0;
+    final enrolledInstallers = controller.dashboardData['enrolled_installers_count'] ?? 0;
+    final completedEnrollments = controller.dashboardData['completed_enrollments'] ?? 0;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -314,18 +359,18 @@ class BrandDashboardHome extends StatelessWidget {
               Icons.card_giftcard,
               const Color(0xFF2196F3),
               'Total Programs',
-              '3 / 2',
+              '$totalPrograms / $activePrograms',
               'Total / Active',
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              Icons.campaign,
+              Icons.people,
               const Color(0xFFFF9800),
-              'Announcements / Claims',
-              '5 / 12',
-              'Announcements / Claims',
+              'Enrollments',
+              '$enrolledInstallers / $completedEnrollments',
+              'Total / Completed',
             ),
           ),
         ],
@@ -386,7 +431,7 @@ class BrandDashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickLinks(BuildContext context) {
+  Widget _buildQuickLinks(BuildContext context, BrandController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -406,24 +451,27 @@ class BrandDashboardHome extends StatelessWidget {
               Expanded(
                 child: _buildQuickLink(
                   Icons.add,
-                  'Create Program',
+                  'Create\nProgram',
                   const Color(0xFF2196F3),
+                  onTap: () => Get.to(() => const ProgramFormPage()),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildQuickLink(
                   Icons.campaign,
-                  'New Announcement',
+                  'New\nAnnouncement',
                   const Color(0xFFFF9800),
+                  onTap: () => controller.changePage(4),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildQuickLink(
                   Icons.upload_file,
-                  'Upload Manual',
+                  'Upload\nManual',
                   const Color(0xFF9C27B0),
+                  onTap: () => controller.changePage(5),
                 ),
               ),
             ],
@@ -433,9 +481,9 @@ class BrandDashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickLink(IconData icon, String label, Color color) {
+  Widget _buildQuickLink(IconData icon, String label, Color color, {required VoidCallback onTap}) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
@@ -461,7 +509,9 @@ class BrandDashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentPrograms() {
+  Widget _buildRecentPrograms(BrandController controller) {
+    final programs = controller.dashboardData['programs'] as List? ?? [];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -488,7 +538,7 @@ class BrandDashboardHome extends StatelessWidget {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => Get.find<BrandController>().changePage(1),
                   child: const Text(
                     'View All',
                     style: TextStyle(color: Color(0xFF2196F3)),
@@ -497,13 +547,18 @@ class BrandDashboardHome extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _buildProgramItem(
-              'Summer Incentive 2025',
-              'Rs 500 per panel',
-              'Active',
-            ),
-            _buildProgramItem('Winter Bonus', 'Rs 1000 bonus', 'Active'),
-            _buildProgramItem('New Year Offer', 'Flat 20% off', 'Draft'),
+            if (programs.isEmpty)
+              _buildProgramItem('No programs yet', '', 'N/A')
+            else
+              ...programs
+                  .take(3)
+                  .map(
+                    (p) => _buildProgramItem(
+                      p['title'] ?? 'Program',
+                      p['incentive_amount'] != null ? 'Rs ${p['incentive_amount']}' : '',
+                      (p['is_active'] == true && p['is_published'] == true) ? 'active' : 'inactive',
+                    ),
+                  ),
           ],
         ),
       ),
@@ -511,9 +566,8 @@ class BrandDashboardHome extends StatelessWidget {
   }
 
   Widget _buildProgramItem(String title, String reward, String status) {
-    Color statusColor = status == 'Active'
-        ? const Color(0xFF4CAF50)
-        : Colors.grey;
+    final isActive = status.toLowerCase() == 'active';
+    final statusColor = isActive ? const Color(0xFF4CAF50) : Colors.grey;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -563,7 +617,11 @@ class BrandDashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentAnnouncements() {
+  Widget _buildRecentAnnouncements(BrandController controller) {
+    final announcements =
+        controller.announcements as List? ?? [];
+    final latest = announcements.isNotEmpty ? announcements.first : null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -590,7 +648,7 @@ class BrandDashboardHome extends StatelessWidget {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => Get.find<BrandController>().changePage(4),
                   child: const Text(
                     'View All',
                     style: TextStyle(color: Color(0xFF2196F3)),
@@ -599,14 +657,14 @@ class BrandDashboardHome extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'New Solar Panel Models Available',
-              style: TextStyle(fontWeight: FontWeight.w500),
+            Text(
+              latest?['title'] ?? 'No announcements yet',
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'We have introduced new models for the upcoming season...',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Text(
+              latest?['body'] ?? '',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

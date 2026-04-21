@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'controllers/installer_controller.dart';
 
 class MyJobsPage extends StatefulWidget {
   const MyJobsPage({super.key});
@@ -10,6 +12,7 @@ class MyJobsPage extends StatefulWidget {
 class _MyJobsPageState extends State<MyJobsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final InstallerController controller = Get.find<InstallerController>();
 
   @override
   void initState() {
@@ -18,12 +21,32 @@ class _MyJobsPageState extends State<MyJobsPage>
     _tabController.addListener(() {
       setState(() {});
     });
+    if (controller.myJobs.isEmpty) {
+      controller.fetchMyJobs();
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  List _jobsForTab(List jobs) {
+    switch (_tabController.index) {
+      case 1:
+        return jobs.where((j) {
+          final s = (j['status'] ?? '').toString().toLowerCase();
+          return s == 'active' || s == 'in_progress' || s == 'in progress' || s == 'started';
+        }).toList();
+      case 2:
+        return jobs.where((j) {
+          final s = (j['status'] ?? '').toString().toLowerCase();
+          return s == 'completed';
+        }).toList();
+      default:
+        return jobs;
+    }
   }
 
   @override
@@ -77,24 +100,46 @@ class _MyJobsPageState extends State<MyJobsPage>
   }
 
   Widget _buildStatsCards() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatCard('Total', '12', const Color(0xFF2196F3)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard('Active', '3', const Color(0xFFFF8F00)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard('Completed', '9', const Color(0xFF4CAF50)),
-          ),
-        ],
-      ),
-    );
+    return Obx(() {
+      final stats = controller.dashboardData['stats'] as Map? ?? {};
+      final total = stats['total_jobs']?.toString() ??
+          stats['total']?.toString() ??
+          controller.myJobs.length.toString();
+      final active = stats['active_jobs']?.toString() ??
+          stats['active']?.toString() ??
+          controller.myJobs
+              .where((j) {
+                final s = (j['status'] ?? '').toString().toLowerCase();
+                return s == 'active' || s == 'in_progress' || s == 'in progress' || s == 'started';
+              })
+              .length
+              .toString();
+      final completed = stats['completed_jobs']?.toString() ??
+          stats['completed']?.toString() ??
+          controller.myJobs
+              .where((j) => (j['status'] ?? '').toString().toLowerCase() == 'completed')
+              .length
+              .toString();
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildStatCard('Total', total, const Color(0xFF2196F3)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard('Active', active, const Color(0xFFFF8F00)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard('Completed', completed, const Color(0xFF4CAF50)),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildStatCard(String label, String value, Color color) {
@@ -132,9 +177,9 @@ class _MyJobsPageState extends State<MyJobsPage>
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
@@ -196,173 +241,269 @@ class _MyJobsPageState extends State<MyJobsPage>
   }
 
   Widget _buildJobsList() {
-    final jobs = [
-      {
-        'customer': 'Ali Ahmed',
-        'service': 'Solar Panel Installation',
-        'location': 'Lahore',
-        'amount': 'Rs 5,000',
-        'status': 'In Progress',
-      },
-      {
-        'customer': 'Sara Khan',
-        'service': 'Inverter Repair',
-        'location': 'Karachi',
-        'amount': 'Rs 3,000',
-        'status': 'Active',
-      },
-      {
-        'customer': 'Muhammad Usman',
-        'service': 'System Maintenance',
-        'location': 'Islamabad',
-        'amount': 'Rs 2,500',
-        'status': 'Completed',
-      },
-      {
-        'customer': 'Fatima Bhatti',
-        'service': 'Panel Setup',
-        'location': 'Lahore',
-        'amount': 'Rs 4,000',
-        'status': 'Active',
-      },
-    ];
+    return Obx(() {
+      if (controller.myJobsLoading.value && controller.myJobs.isEmpty) {
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFFFF8F00)),
+        );
+      }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: jobs.length,
-      itemBuilder: (context, index) {
-        final job = jobs[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(12),
-          ),
+      final tabJobs = _jobsForTab(controller.myJobs.toList());
+
+      if (tabJobs.isEmpty) {
+        return const Center(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    job['customer']!,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(job['status']!).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      job['status']!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: _getStatusColor(job['status']!),
-                      ),
-                    ),
-                  ),
-                ],
+              Icon(Icons.work_off_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 12),
+              Text(
+                'No jobs found',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
-              const SizedBox(height: 8),
-              Text(job['service']!, style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_outlined,
-                    size: 14,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    job['location']!,
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  const Spacer(),
-                  Text(
-                    job['amount']!,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFFF8F00),
-                    ),
-                  ),
-                ],
-              ),
-              if (job['status'] != 'Completed') ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Complete Job'),
-                          content: const Text('Mark this job as completed?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Job marked as completed!'),
-                                    backgroundColor: Color(0xFF4CAF50),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF8F00),
-                              ),
-                              child: const Text('Confirm'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF8F00),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Mark as Completed',
-                      style: TextStyle(color: Colors.white, fontSize: 13),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         );
-      },
+      }
+
+      return RefreshIndicator(
+        color: const Color(0xFFFF8F00),
+        onRefresh: () => controller.fetchMyJobs(refresh: true),
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: tabJobs.length,
+          itemBuilder: (context, index) {
+            final assignment = tabJobs[index] as Map;
+            final job = assignment['job'] as Map? ?? assignment;
+            final status = assignment['status'] ?? job['status'] ?? '';
+            final title = job['title'] ?? 'Untitled Job';
+            final description = job['description'] ?? '';
+            final city = job['city'] ?? '';
+            final location = job['location'] ?? '';
+            final displayLocation = city.isNotEmpty
+                ? '$city${location.isNotEmpty ? ', $location' : ''}'
+                : location;
+            final budget = job['budget'];
+            final amountText = budget != null ? 'Rs $budget' : 'N/A';
+            final assignmentId = assignment['id'] ?? job['id'];
+            final isCompleted =
+                status.toString().toLowerCase() == 'completed';
+            final isActive = status.toString().toLowerCase() == 'active' ||
+                status.toString().toLowerCase() == 'in_progress' ||
+                status.toString().toLowerCase() == 'in progress' ||
+                status.toString().toLowerCase() == 'started';
+            final isPending = !isCompleted && !isActive;
+            final assignStatus = status.toString().toLowerCase();
+            final paymentSent = job['payment_released_at'] != null;
+            final paymentDone = job['payment_received_at'] != null;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title.toString(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(status.toString()).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _formatStatus(status.toString()),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: _getStatusColor(status.toString()),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (description.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      description.toString(),
+                      style: const TextStyle(color: Colors.grey),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          displayLocation.isNotEmpty ? displayLocation : 'N/A',
+                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        amountText,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFF8F00),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!paymentDone) ...[
+                    const SizedBox(height: 12),
+                    if (assignStatus == 'pending')
+                      _jobStatusLabel('Awaiting Shopkeeper Acceptance', Colors.grey),
+                    if (assignStatus == 'accepted')
+                      _jobActionButton(
+                        'Start Job',
+                        const Color(0xFF2196F3),
+                        () => controller.startJob(int.parse(assignmentId.toString())),
+                      ),
+                    if (assignStatus == 'in_progress')
+                      _jobActionButton(
+                        'Mark as Completed',
+                        const Color(0xFFFF8F00),
+                        () => _showCompleteDialog(context, int.parse(assignmentId.toString())),
+                      ),
+                    if (assignStatus == 'completed' && !paymentSent)
+                      _jobStatusLabel('Awaiting Payment from Shopkeeper', const Color(0xFFFF9800)),
+                    if (paymentSent && !paymentDone)
+                      _jobActionButton(
+                        'Mark Payment Received',
+                        const Color(0xFF4CAF50),
+                        () => _showPaymentReceivedDialog(
+                          context,
+                          int.parse((job['job_id'] ?? job['id']).toString()),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    });
+  }
+
+  void _showCompleteDialog(BuildContext context, int jobId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Complete Job'),
+        content: const Text('Mark this job as completed?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              controller.completeJob(jobId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF8F00),
+            ),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
+  void _showPaymentReceivedDialog(BuildContext context, int jobId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Payment Received'),
+        content: const Text('Confirm that you have received the payment outside the app?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              controller.confirmPaymentReceived(jobId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4CAF50)),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _jobStatusLabel(String text, Color color) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      text,
+      textAlign: TextAlign.center,
+      style: TextStyle(color: color, fontSize: 12),
+    ),
+  );
+
+  Widget _jobActionButton(String label, Color color, VoidCallback onTap) => SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 13)),
+    ),
+  );
+
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'In Progress':
-      case 'Active':
-        return const Color(0xFFFF8F00);
-      case 'Completed':
-        return const Color(0xFF4CAF50);
-      default:
-        return Colors.grey;
+    final s = status.toLowerCase();
+    if (s == 'in_progress' || s == 'in progress' || s == 'active' || s == 'started') {
+      return const Color(0xFFFF8F00);
     }
+    if (s == 'completed') {
+      return const Color(0xFF4CAF50);
+    }
+    return Colors.grey;
+  }
+
+  String _formatStatus(String status) {
+    final s = status.toLowerCase();
+    if (s == 'in_progress') return 'In Progress';
+    return status.isNotEmpty
+        ? status[0].toUpperCase() + status.substring(1)
+        : status;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'controllers/shopkeeper_controller.dart';
 
 class ShopkeepersPage extends StatefulWidget {
   const ShopkeepersPage({super.key});
@@ -9,75 +10,26 @@ class ShopkeepersPage extends StatefulWidget {
 }
 
 class _ShopkeepersPageState extends State<ShopkeepersPage> {
-  final List<Map<String, dynamic>> _installers = [
-    {
-      'name': 'Ahmed Khan',
-      'phone': '+92 300 1234567',
-      'skills': 'Solar Installation, Electrical',
-      'rating': 4.8,
-      'jobsCompleted': 45,
-      'location': 'Lahore',
-      'verified': true,
-    },
-    {
-      'name': 'Muhammad Ali',
-      'phone': '+92 301 2345678',
-      'skills': 'Battery Setup, Inverter Repair',
-      'rating': 4.5,
-      'jobsCompleted': 32,
-      'location': 'Karachi',
-      'verified': true,
-    },
-    {
-      'name': 'Saeed Ahmed',
-      'phone': '+92 302 3456789',
-      'skills': 'Maintenance, Cleaning',
-      'rating': 4.2,
-      'jobsCompleted': 18,
-      'location': 'Islamabad',
-      'verified': false,
-    },
-    {
-      'name': 'Rashid Mehmood',
-      'phone': '+92 303 4567890',
-      'skills': 'Solar Installation, Wiring',
-      'rating': 4.9,
-      'jobsCompleted': 67,
-      'location': 'Lahore',
-      'verified': true,
-    },
-    {
-      'name': 'Bilal Hussain',
-      'phone': '+92 304 5678901',
-      'skills': 'Electrical, Repair',
-      'rating': 4.0,
-      'jobsCompleted': 12,
-      'location': 'Faisalabad',
-      'verified': false,
-    },
-  ];
-
+  final ShopkeeperController controller = Get.find<ShopkeeperController>();
+  final _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedFilter = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    if (controller.installers.isEmpty) {
+      controller.fetchInstallers();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    var filteredInstallers = _installers.where((i) {
-      final matchesSearch =
-          _searchQuery.isEmpty ||
-          i['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          i['skills'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-      final matchesFilter =
-          _selectedFilter == 'All' ||
-          (_selectedFilter == 'Verified' && i['verified']) ||
-          (_selectedFilter == 'Unverified' && !i['verified']);
-      return matchesSearch && matchesFilter;
-    }).toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -85,8 +37,63 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
           children: [
             _buildHeader(context),
             _buildSearchBar(),
-            _buildFilterChips(),
-            Expanded(child: _buildInstallersList(filteredInstallers)),
+            Expanded(
+              child: Obx(() {
+                if (controller.installersLoading.value &&
+                    controller.installers.isEmpty) {
+                  return const Center(
+                      child: CircularProgressIndicator(
+                          color: Color(0xFF9C27B0)));
+                }
+
+                final filtered = controller.installers.where((i) {
+                  final inst = i as Map;
+                  final name =
+                      inst['name']?.toString().toLowerCase() ?? '';
+                  final skills =
+                      inst['skills']?.toString().toLowerCase() ?? '';
+                  final city =
+                      inst['city']?.toString().toLowerCase() ?? '';
+                  return _searchQuery.isEmpty ||
+                      name.contains(_searchQuery.toLowerCase()) ||
+                      skills.contains(_searchQuery.toLowerCase()) ||
+                      city.contains(_searchQuery.toLowerCase());
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return RefreshIndicator(
+                    color: const Color(0xFF9C27B0),
+                    onRefresh: () => controller.fetchInstallers(),
+                    child: ListView(children: const [
+                      SizedBox(height: 100),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.person_search,
+                                size: 48, color: Colors.grey),
+                            SizedBox(height: 12),
+                            Text('No installers found',
+                                style: TextStyle(color: Colors.grey)),
+                          ]),
+                    ]),
+                  );
+                }
+
+                return RefreshIndicator(
+                  color: const Color(0xFF9C27B0),
+                  onRefresh: () => controller.fetchInstallers(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final installer = Map<String, dynamic>.from(
+                          filtered[index] as Map);
+                      return _buildInstallerCard(installer);
+                    },
+                  ),
+                );
+              }),
+            ),
           ],
         ),
       ),
@@ -112,12 +119,20 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
             ),
           ),
           const SizedBox(width: 16),
-          const Text(
-            'Find Installers',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Find Installers',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87)),
+                Obx(() => Text(
+                    '${controller.installers.length} available',
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.grey))),
+              ],
             ),
           ),
         ],
@@ -127,229 +142,300 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: TextField(
-        onChanged: (value) => setState(() => _searchQuery = value),
+        controller: _searchController,
+        onChanged: (v) => setState(() => _searchQuery = v),
         decoration: InputDecoration(
-          hintText: 'Search by name or skills...',
+          hintText: 'Search by name, skills or city...',
           prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  })
+              : null,
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none),
         ),
       ),
     );
   }
 
-  Widget _buildFilterChips() {
-    final filters = ['All', 'Verified', 'Unverified'];
+  Widget _buildInstallerCard(Map<String, dynamic> installer) {
+    final name = installer['name']?.toString() ?? 'Installer';
+    final city = installer['city']?.toString() ?? '';
+    final region = installer['region']?.toString() ?? '';
+    final skills = installer['skills']?.toString() ?? '';
+    final rating =
+        double.tryParse(installer['rating']?.toString() ?? '0') ?? 0.0;
+    final jobsDone = installer['total_jobs_completed'] ?? 0;
+    final kycStatus = installer['kyc_status']?.toString() ?? '';
+    final isVerified = kycStatus == 'approved';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'I';
+    final location =
+        [city, region].where((s) => s.isNotEmpty).join(', ');
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: filters.map((filter) {
-            final isSelected = _selectedFilter == filter;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(filter),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() => _selectedFilter = filter);
-                },
-                selectedColor: const Color(0xFF9C27B0).withValues(alpha: 0.2),
-                checkmarkColor: const Color(0xFF9C27B0),
-                labelStyle: TextStyle(
-                  color: isSelected ? const Color(0xFF9C27B0) : Colors.grey,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor:
+                    const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                child: Text(initial,
+                    style: const TextStyle(
+                        color: Color(0xFF9C27B0),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Text(name,
+                          style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold)),
+                      if (isVerified) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.verified,
+                            size: 16, color: Color(0xFF4CAF50)),
+                      ],
+                    ]),
+                    if (location.isNotEmpty)
+                      Text(location,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
+                  ],
                 ),
               ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInstallersList(List<Map<String, dynamic>> installers) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: installers.length,
-      itemBuilder: (context, index) {
-        final installer = installers[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(children: [
+                    const Icon(Icons.star, size: 14, color: Colors.amber),
+                    const SizedBox(width: 2),
+                    Text(rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                  ]),
+                  Text('$jobsDone jobs',
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.grey)),
+                ],
               ),
             ],
           ),
+          if (skills.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              const Icon(Icons.build, size: 13, color: Colors.grey),
+              const SizedBox(width: 4),
+              Expanded(
+                  child: Text(skills,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey),
+                      overflow: TextOverflow.ellipsis)),
+            ]),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _showInstallerDetail(installer),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9C27B0),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('View Profile',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInstallerDetail(Map<String, dynamic> installer) async {
+    final id = installer['id'];
+    if (id == null) return;
+
+    Get.dialog(
+        const Center(
+            child:
+                CircularProgressIndicator(color: Color(0xFF9C27B0))),
+        barrierDismissible: false);
+
+    final detail =
+        await controller.getInstallerDetail(int.parse(id.toString()));
+    Get.back();
+
+    if (detail == null) {
+      Get.snackbar('Error', 'Could not load installer profile',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    final name = detail['name']?.toString() ?? 'Installer';
+    final email = detail['email']?.toString() ?? '';
+    final phone = detail['phone']?.toString() ?? '';
+    final city = detail['city']?.toString() ?? '';
+    final region = detail['region']?.toString() ?? '';
+    final profile = detail['profile'] as Map? ?? {};
+    final skills = profile['skills']?.toString() ?? '';
+    final bio = profile['bio']?.toString() ?? '';
+    final rating =
+        double.tryParse(profile['rating']?.toString() ?? '0') ?? 0.0;
+    final jobsDone = profile['total_jobs_completed'] ?? 0;
+    final kycStatus = profile['kyc_status']?.toString() ?? '';
+    final isVerified = kycStatus == 'approved';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'I';
+
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(
-                      0xFF9C27B0,
-                    ).withValues(alpha: 0.1),
-                    child: Text(
-                      installer['name'][0],
-                      style: const TextStyle(
-                        color: Color(0xFF9C27B0),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    radius: 32,
+                    backgroundColor:
+                        const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                    child: Text(initial,
+                        style: const TextStyle(
+                            color: Color(0xFF9C27B0),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24)),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              installer['name'],
+                        Row(children: [
+                          Text(name,
                               style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (installer['verified']) ...[
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.verified,
-                                size: 16,
-                                color: Color(0xFF4CAF50),
-                              ),
-                            ],
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold)),
+                          if (isVerified) ...[
+                            const SizedBox(width: 6),
+                            const Icon(Icons.verified,
+                                size: 18, color: Color(0xFF4CAF50)),
                           ],
-                        ),
-                        Text(
-                          installer['phone'],
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        ]),
+                        if (email.isNotEmpty)
+                          Text(email,
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 13)),
+                        Row(children: [
+                          const Icon(Icons.star,
+                              size: 14, color: Colors.amber),
+                          const SizedBox(width: 3),
+                          Text('$rating  ·  $jobsDone jobs done',
+                              style: const TextStyle(
+                                  fontSize: 13, color: Colors.grey)),
+                        ]),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star, size: 16, color: Colors.amber),
-                          const SizedBox(width: 4),
-                          Text(
-                            installer['rating'].toString(),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '${installer['jobsCompleted']} jobs',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    installer['location'],
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const Spacer(),
-                  const Icon(Icons.build, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      installer['skills'],
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
+              if (phone.isNotEmpty)
+                _detailRow(Icons.phone, 'Phone', phone),
+              if (city.isNotEmpty)
+                _detailRow(Icons.location_on, 'Location',
+                    [city, region].where((s) => s.isNotEmpty).join(', ')),
+              if (skills.isNotEmpty)
+                _detailRow(Icons.build, 'Skills', skills),
+              if (bio.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text('About',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(bio, style: const TextStyle(fontSize: 14)),
+              ],
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _showHireDialog(installer),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF9C27B0),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                child: OutlinedButton(
+                  onPressed: () => Get.back(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text(
-                    'View Profile',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: const Text('Close'),
                 ),
               ),
+              const SizedBox(height: 8),
             ],
           ),
-        );
-      },
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 
-  void _showHireDialog(Map<String, dynamic> installer) {
-    Get.dialog(
-      AlertDialog(
-        title: Text(installer['name']),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Phone: ${installer['phone']}'),
-            const SizedBox(height: 8),
-            Text('Skills: ${installer['skills']}'),
-            const SizedBox(height: 8),
-            Text('Location: ${installer['location']}'),
-            const SizedBox(height: 8),
-            Text('Rating: ${installer['rating']}/5'),
-            const SizedBox(height: 8),
-            Text('Jobs Completed: ${installer['jobsCompleted']}'),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Close')),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              Get.snackbar(
-                'Success',
-                'Installer hired successfully!',
-                backgroundColor: const Color(0xFF4CAF50),
-                colorText: Colors.white,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF9C27B0),
-            ),
-            child: const Text('Hire', style: TextStyle(color: Colors.white)),
-          ),
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: const Color(0xFF9C27B0)),
+          const SizedBox(width: 10),
+          Text('$label: ',
+              style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Expanded(
+              child: Text(value,
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w500))),
         ],
       ),
     );

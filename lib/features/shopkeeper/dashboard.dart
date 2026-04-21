@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'jobs.dart';
 import 'shopkeeper_profile.dart';
 import 'notifications.dart';
@@ -46,105 +47,97 @@ class ShopkeeperDashboard extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF9C27B0), Color(0xFFBA68C8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            Obx(() {
+              final profileUser = controller.userProfile['user'];
+              final dashUser = controller.dashboardData['user'];
+              final storage = GetStorage();
+              final storedUser = storage.read('user');
+              final userName = profileUser?['name'] ??
+                  dashUser?['name'] ??
+                  storedUser?['name'] ??
+                  'Shopkeeper';
+              final userEmail = profileUser?['email'] ??
+                  dashUser?['email'] ??
+                  storedUser?['email'] ??
+                  '';
+              final shopName =
+                  controller.userProfile['profile']?['shop_name'] ?? userName;
+              final initial =
+                  shopName.isNotEmpty ? shopName[0].toUpperCase() : 'S';
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF9C27B0), Color(0xFFBA68C8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'S',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF9C27B0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF9C27B0),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Demo Shop',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                    const SizedBox(height: 16),
+                    Text(
+                      shopName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'shop@solar.test',
-                    style: TextStyle(fontSize: 14, color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 4),
+                    Text(
+                      userEmail,
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.white70),
+                    ),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 10),
-            Obx(
-              () => _buildDrawerItem(
-                0,
-                Icons.dashboard,
-                'Dashboard',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () =>
-                  _buildDrawerItem(1, Icons.work, 'Jobs', controller, context),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                2,
-                Icons.search,
-                'Find Installers',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                3,
-                Icons.notifications,
-                'Notifications',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                4,
-                Icons.person,
-                'My Profile',
-                controller,
-                context,
-              ),
-            ),
+            Obx(() =>
+                _buildDrawerItem(0, Icons.dashboard, 'Dashboard', controller, context)),
+            Obx(() =>
+                _buildDrawerItem(1, Icons.work, 'Jobs', controller, context)),
+            Obx(() => _buildDrawerItem(
+                2, Icons.search, 'Find Installers', controller, context)),
+            Obx(() => _buildDrawerItem(
+                3, Icons.notifications, 'Notifications', controller, context)),
+            Obx(() => _buildDrawerItem(
+                4, Icons.person, 'My Profile', controller, context)),
             const Spacer(),
             Padding(
               padding: const EdgeInsets.all(16),
               child: ListTile(
                 leading: const Icon(Icons.logout, color: Color(0xFFF44336)),
-                title: const Text(
-                  'Logout',
-                  style: TextStyle(color: Color(0xFFF44336)),
-                ),
-                onTap: () => Get.offAllNamed('/login'),
+                title: const Text('Logout',
+                    style: TextStyle(color: Color(0xFFF44336))),
+                onTap: () {
+                  GetStorage().remove('token');
+                  GetStorage().remove('user');
+                  Get.offAllNamed('/login');
+                },
               ),
             ),
           ],
@@ -153,19 +146,12 @@ class ShopkeeperDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem(
-    int index,
-    IconData icon,
-    String title,
-    ShopkeeperController controller,
-    BuildContext context,
-  ) {
+  Widget _buildDrawerItem(int index, IconData icon, String title,
+      ShopkeeperController controller, BuildContext context) {
     final isSelected = controller.currentIndex.value == index;
     return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? const Color(0xFF9C27B0) : Colors.grey,
-      ),
+      leading:
+          Icon(icon, color: isSelected ? const Color(0xFF9C27B0) : Colors.grey),
       title: Text(
         title,
         style: TextStyle(
@@ -188,31 +174,63 @@ class ShopkeeperDashboardHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ShopkeeperController controller = Get.find<ShopkeeperController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 16),
-              _buildStatsCards(),
-              const SizedBox(height: 20),
-              _buildRecentJobs(),
-              const SizedBox(height: 20),
-              _buildQuickActions(),
-              const SizedBox(height: 20),
-              _buildJobsByStatus(),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+        child: Obx(() {
+          if (controller.isLoading.value &&
+              controller.dashboardData.isEmpty) {
+            return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF9C27B0)));
+          }
+          return RefreshIndicator(
+            onRefresh: () async {
+              await controller.fetchDashboard();
+              await controller.fetchProfile();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context, controller),
+                  const SizedBox(height: 16),
+                  _buildStatsCards(controller),
+                  const SizedBox(height: 20),
+                  _buildRecentJobs(controller),
+                  const SizedBox(height: 20),
+                  _buildQuickActions(controller),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(
+      BuildContext context, ShopkeeperController controller) {
+    final profileUser = controller.userProfile['user'];
+    final dashUser = controller.dashboardData['user'];
+    final storage = GetStorage();
+    final storedUser = storage.read('user');
+    final userName = profileUser?['name'] ??
+        dashUser?['name'] ??
+        storedUser?['name'] ??
+        'Shopkeeper';
+    final shopName = controller.userProfile['profile']?['shop_name'];
+    final displayName = shopName ?? userName;
+    final email = profileUser?['email'] ??
+        dashUser?['email'] ??
+        storedUser?['email'] ??
+        '';
+    final initial =
+        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'S';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(color: Colors.white),
@@ -231,23 +249,22 @@ class ShopkeeperDashboardHome extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Shopkeeper Panel',
-                  style: TextStyle(
-                    fontSize: 20,
+                  'Welcome, $displayName',
+                  style: const TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
-                  'Solar Connect',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
+                if (email.isNotEmpty)
+                  Text(email,
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.grey)),
               ],
             ),
           ),
@@ -258,10 +275,10 @@ class ShopkeeperDashboardHome extends StatelessWidget {
               color: const Color(0xFFF3E5F5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'S',
-                style: TextStyle(
+                initial,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF9C27B0),
@@ -274,7 +291,13 @@ class ShopkeeperDashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsCards() {
+  Widget _buildStatsCards(ShopkeeperController controller) {
+    // Backend returns flat keys directly in dashboardData
+    final totalJobs = controller.dashboardData['jobs_posted'] ?? 0;
+    final activeJobs = controller.dashboardData['active_jobs'] ?? 0;
+    final completedJobs = controller.dashboardData['completed_jobs'] ?? 0;
+    final totalSpent = controller.dashboardData['total_payments_made'] ?? 0;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Wrap(
@@ -282,40 +305,20 @@ class ShopkeeperDashboardHome extends StatelessWidget {
         runSpacing: 12,
         children: [
           _buildStatCard(
-            Icons.work,
-            const Color(0xFF9C27B0),
-            'Total Jobs',
-            '0',
-          ),
-          _buildStatCard(
-            Icons.play_circle,
-            const Color(0xFF2196F3),
-            'Active Jobs',
-            '0',
-          ),
-          _buildStatCard(
-            Icons.check_circle,
-            const Color(0xFF4CAF50),
-            'Completed Jobs',
-            '0',
-          ),
-          _buildStatCard(
-            Icons.attach_money,
-            const Color(0xFFFF9800),
-            'Total Spent',
-            'PKR 0',
-          ),
+              Icons.work, const Color(0xFF9C27B0), 'Total Jobs', '$totalJobs'),
+          _buildStatCard(Icons.play_circle, const Color(0xFF2196F3),
+              'Active Jobs', '$activeJobs'),
+          _buildStatCard(Icons.check_circle, const Color(0xFF4CAF50),
+              'Completed', '$completedJobs'),
+          _buildStatCard(Icons.payments, const Color(0xFFFF9800), 'Total Paid',
+              'PKR $totalSpent'),
         ],
       ),
     );
   }
 
   Widget _buildStatCard(
-    IconData icon,
-    Color color,
-    String title,
-    String value,
-  ) {
+      IconData icon, Color color, String title, String value) {
     final screenWidth = MediaQuery.of(Get.context!).size.width;
     return Container(
       width: (screenWidth - 52) / 2,
@@ -344,22 +347,23 @@ class ShopkeeperDashboardHome extends StatelessWidget {
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87)),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(title,
+              style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
   }
 
-  Widget _buildRecentJobs() {
+  Widget _buildRecentJobs(ShopkeeperController controller) {
+    final recentJobs =
+        controller.dashboardData['recent_jobs'] as List? ?? [];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -381,179 +385,155 @@ class ShopkeeperDashboardHome extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Recent Jobs',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                const Text('Recent Jobs',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'View all',
-                    style: TextStyle(color: Color(0xFF9C27B0)),
-                  ),
+                  onPressed: () =>
+                      Get.find<ShopkeeperController>().changePage(1),
+                  child: const Text('View all',
+                      style: TextStyle(color: Color(0xFF9C27B0))),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Column(
-                children: [
+            const SizedBox(height: 8),
+            if (recentJobs.isEmpty)
+              const Center(
+                  child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(children: [
                   Icon(Icons.work_off, size: 32, color: Colors.grey),
                   SizedBox(height: 8),
-                  Text(
-                    'No jobs posted yet.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  Text(
-                    'Post your first job',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
+                  Text('No jobs posted yet',
+                      style: TextStyle(color: Colors.grey)),
+                ]),
+              ))
+            else
+              ...recentJobs.take(3).map((job) => _buildJobItem(job as Map)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildJobItem(Map job) {
+    final status = job['status']?.toString() ?? '';
+    Color statusColor;
+    switch (status) {
+      case 'active':
+      case 'open':
+        statusColor = const Color(0xFF2196F3);
+        break;
+      case 'completed':
+        statusColor = const Color(0xFF4CAF50);
+        break;
+      default:
+        statusColor = const Color(0xFFFF9800);
+    }
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
         children: [
-          const Text(
-            'Quick Actions',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.work, color: Color(0xFF9C27B0), size: 20),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildQuickActionButton(
-                  Icons.add,
-                  'Post a New Job',
-                  const Color(0xFF9C27B0),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildQuickActionButton(
-                  Icons.search,
-                  'Browse Installers',
-                  const Color(0xFF2196F3),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildQuickActionButton(
-                  Icons.list,
-                  'View All Jobs',
-                  const Color(0xFF4CAF50),
-                ),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(job['title']?.toString() ?? 'Job',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w500, fontSize: 13)),
+                  Text('PKR ${job['budget'] ?? 'N/A'}',
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.grey)),
+                ]),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status.isEmpty
+                  ? 'N/A'
+                  : status[0].toUpperCase() + status.substring(1),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: statusColor,
+                  fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionButton(IconData icon, String label, Color color) {
+  Widget _buildQuickActions(ShopkeeperController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Quick Actions',
+              style:
+                  TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+                child: _buildQuickAction(Icons.add, 'Post Job',
+                    const Color(0xFF9C27B0), () {
+              controller.changePage(1);
+            })),
+            const SizedBox(width: 12),
+            Expanded(
+                child: _buildQuickAction(Icons.search, 'Find Installers',
+                    const Color(0xFF2196F3), () {
+              controller.changePage(2);
+            })),
+            const SizedBox(width: 12),
+            Expanded(
+                child: _buildQuickAction(
+                    Icons.list, 'My Jobs', const Color(0xFF4CAF50), () {
+              controller.changePage(1);
+            })),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAction(
+      IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
+        child: Column(children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
-        ),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: color)),
+        ]),
       ),
-    );
-  }
-
-  Widget _buildJobsByStatus() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Jobs by Status',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatusItem('Open', '0', const Color(0xFFFF9800)),
-                ),
-                Expanded(
-                  child: _buildStatusItem(
-                    'In Progress',
-                    '0',
-                    const Color(0xFF2196F3),
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatusItem(
-                    'Completed',
-                    '0',
-                    const Color(0xFF4CAF50),
-                  ),
-                ),
-                Expanded(child: _buildStatusItem('Cancelled', '0', Colors.red)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusItem(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      ],
     );
   }
 }

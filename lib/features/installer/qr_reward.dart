@@ -1,5 +1,19 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:get/get.dart';
+import 'barcode_scanner_page.dart';
+import 'controllers/installer_controller.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _kBrand = Color(0xFFFF8F00);
+const _kBg = Color(0xFFF5F5F5);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
 
 class QRRewardPage extends StatefulWidget {
   const QRRewardPage({super.key});
@@ -9,160 +23,111 @@ class QRRewardPage extends StatefulWidget {
 }
 
 class _QRRewardPageState extends State<QRRewardPage> {
-  MobileScannerController? _scannerController;
-  bool _isScanning = false;
-  bool _isRewardFound = false;
-  bool _hasScanned = false;
+  InstallerController get _ctrl => Get.find<InstallerController>();
 
-  String _brandName = '';
-  String _rewardAmount = '';
-  Color _brandColor = const Color(0xFFFF8F00);
+  /// key  = "${programId}_${productId}"
+  /// value = captured barcode frame bytes (null = not yet captured)
+  final Map<String, Uint8List?> _capturedImages = {};
 
-  final List<Map<String, dynamic>> _availableRewards = [
-    {
-      'code': 'ECO001',
-      'brand': 'EcoSolar Panels',
-      'reward': 'Rs 500',
-      'color': const Color(0xFF2196F3),
-    },
-    {
-      'code': 'TESLA01',
-      'brand': 'Tesla Powerwall',
-      'reward': 'Rs 2,000',
-      'color': const Color(0xFFE91E63),
-    },
-    {
-      'code': 'FRON01',
-      'brand': 'Fronius Inverters',
-      'reward': 'Rs 1,500',
-      'color': const Color(0xFF4CAF50),
-    },
-    {
-      'code': 'HUAWEI1',
-      'brand': 'Huawei Solar',
-      'reward': 'Rs 3,000',
-      'color': const Color(0xFFFF5722),
-    },
-    {
-      'code': 'LUMI001',
-      'brand': 'Luminous Batteries',
-      'reward': 'Rs 800',
-      'color': const Color(0xFF9C27B0),
-    },
-    {
-      'code': 'GROW001',
-      'brand': 'Growatt Inverters',
-      'reward': 'Rs 1,200',
-      'color': const Color(0xFF00BCD4),
-    },
-  ];
+  /// tracks which product is currently being claimed (showing spinner)
+  final Set<String> _claimingKeys = {};
+
+  // ── lifecycle ────────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    _scannerController = MobileScannerController(
-      detectionSpeed: DetectionSpeed.normal,
-      facing: CameraFacing.back,
+    if (_ctrl.enrolledPrograms.isEmpty) _ctrl.fetchEnrolledPrograms();
+  }
+
+  // ── helpers ──────────────────────────────────────────────────────────────────
+
+  String _key(int programId, int productId) => '${programId}_$productId';
+
+  Uint8List? _imageFor(int programId, int productId) =>
+      _capturedImages[_key(programId, productId)];
+
+  // ── capture barcode image ────────────────────────────────────────────────────
+
+  Future<void> _captureImage(int programId, int productId) async {
+    final result = await Navigator.of(context).push<ScanResult>(
+      MaterialPageRoute(builder: (_) => const BarcodeScannerPage()),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _capturedImages[_key(programId, productId)] = result.imageBytes;
+    });
+
+    Get.snackbar(
+      'Barcode Scanned',
+      'Barcode captured. Tap "Claim" to submit.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green.withValues(alpha: 0.9),
+      colorText: Colors.white,
+      icon: const Icon(Icons.check_circle, color: Colors.white),
     );
   }
 
-  @override
-  void dispose() {
-    _scannerController?.dispose();
-    super.dispose();
-  }
+  // ── submit claim ─────────────────────────────────────────────────────────────
 
-  void _onDetect(BarcodeCapture capture) {
-    if (_hasScanned) return;
+  Future<void> _submitClaim(int programId, int productId) async {
+    final bytes = _imageFor(programId, productId);
+    if (bytes == null) return;
 
-    final List<Barcode> barcodes = capture.barcodes;
-    for (final barcode in barcodes) {
-      if (barcode.rawValue != null) {
-        _checkReward(barcode.rawValue!);
-        break;
-      }
-    }
-  }
+    final k = _key(programId, productId);
+    setState(() => _claimingKeys.add(k));
 
-  void _checkReward(String code) {
-    final reward = _availableRewards.firstWhere(
-      (r) => r['code'] == code,
-      orElse: () => {
-        'code': '',
-        'brand': 'Unknown',
-        'reward': 'Rs 0',
-        'color': Colors.grey,
-      },
+    final ok = await _ctrl.submitProductClaim(
+      programId: programId,
+      productId: productId,
+      imageBytes: bytes,
     );
 
-    if (reward['code'] != '') {
-      setState(() {
-        _hasScanned = true;
-        _isRewardFound = true;
-        _isScanning = false;
-        _brandName = reward['brand'];
-        _rewardAmount = reward['reward'];
-        _brandColor = reward['color'];
-      });
-      _scannerController?.stop();
-    } else {
-      setState(() {
-        _hasScanned = true;
-        _isRewardFound = false;
-        _isScanning = false;
-      });
-      _scannerController?.stop();
-    }
+    setState(() {
+      _claimingKeys.remove(k);
+      if (ok) _capturedImages.remove(k); // clear on success
+    });
   }
+
+  // ── build ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Claim Reward',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: _kBg,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            Expanded(child: _buildScanner()),
-            _buildInstructions(),
-            const SizedBox(height: 16),
+            _buildHeader(context),
+            _buildInfoBanner(),
+            Expanded(child: _buildBody()),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  // ── header ───────────────────────────────────────────────────────────────────
+
+  Widget _buildHeader(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: Colors.white,
       child: Row(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => Scaffold.of(context).openDrawer(),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _kBrand.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.menu, color: _kBrand),
             ),
-            child: const Icon(Icons.card_giftcard, color: Color(0xFFFF8F00)),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -170,309 +135,531 @@ class _QRRewardPageState extends State<QRRewardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Scan QR to Claim',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  'Claim Rewards',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
-                SizedBox(height: 4),
                 Text(
-                  'Scan the brand QR code to claim your reward',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  'Scan barcode to submit product claim',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
           ),
+          // Refresh
+          Obx(
+            () => _ctrl.claimsLoading.value
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: _kBrand,
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh, color: _kBrand),
+                    onPressed: _ctrl.fetchEnrolledPrograms,
+                    tooltip: 'Refresh',
+                  ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildScanner() {
+  // ── info banner ──────────────────────────────────────────────────────────────
+
+  Widget _buildInfoBanner() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kBrand.withValues(alpha: 0.3)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: _kBrand, size: 18),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Select an enrolled program product, capture the barcode/product image, '
+              'then tap "Claim" to submit for review.',
+              style: TextStyle(color: Color(0xFFE65100), fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── body ─────────────────────────────────────────────────────────────────────
+
+  Widget _buildBody() {
+    return Obx(() {
+      if (_ctrl.enrolledPrograms.isEmpty && _ctrl.claimsLoading.value) {
+        return const Center(child: CircularProgressIndicator(color: _kBrand));
+      }
+
+      if (_ctrl.enrolledPrograms.isEmpty) {
+        return _buildEmpty();
+      }
+
+      return RefreshIndicator(
+        color: _kBrand,
+        onRefresh: _ctrl.fetchEnrolledPrograms,
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          itemCount: _ctrl.enrolledPrograms.length,
+          itemBuilder: (ctx, i) {
+            final program = _ctrl.enrolledPrograms[i] as Map;
+            return _buildProgramCard(program);
+          },
+        ),
+      );
+    });
+  }
+
+  // ── empty state ──────────────────────────────────────────────────────────────
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: _kBrand.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.card_giftcard_outlined,
+                size: 48,
+                color: _kBrand,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No Enrolled Programs',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'You need to enroll in a brand program first.\n'
+              'Go to "Installer Programs" and enroll in a program to start claiming rewards.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _ctrl.fetchEnrolledPrograms,
+              icon: const Icon(Icons.refresh, color: _kBrand),
+              label: const Text('Refresh', style: TextStyle(color: _kBrand)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: _kBrand),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── program card ─────────────────────────────────────────────────────────────
+
+  Widget _buildProgramCard(Map program) {
+    final programId = program['id'] as int? ?? 0;
+    final title = program['title']?.toString() ?? 'Program';
+    final brandName = program['brand_name']?.toString() ?? '';
+    final products = (program['products'] as List?)?.cast<Map>() ?? [];
+
+    final colors = [
+      const Color(0xFFFF8F00),
+      const Color(0xFF2196F3),
+      const Color(0xFF4CAF50),
+      const Color(0xFF9C27B0),
+      const Color(0xFFE91E63),
+      const Color(0xFF00BCD4),
+    ];
+    final color = colors[programId % colors.length];
+    final initial = title.isNotEmpty ? title[0].toUpperCase() : 'P';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: _isRewardFound
-            ? _buildRewardFoundView()
-            : _hasScanned && !_isRewardFound
-            ? _buildInvalidView()
-            : _isScanning
-            ? _buildCameraView()
-            : _buildWaitingView(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Program header ──────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  color.withValues(alpha: 0.12),
+                  color.withValues(alpha: 0.04),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(18),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initial,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      if (brandName.isNotEmpty)
+                        Text(
+                          'by $brandName',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Text(
+                    'Enrolled',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF2E7D32),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Products divider ────────────────────────────────────────────────
+          if (products.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${products.length} Product${products.length == 1 ? '' : 's'} — tap 📷 to scan barcode',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ...products.map(
+              (product) => _buildProductRow(programId, product, color),
+            ),
+          ] else
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'No products in this program',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
 
-  Widget _buildCameraView() {
-    return Stack(
+  // ── product row ──────────────────────────────────────────────────────────────
+
+  Widget _buildProductRow(int programId, Map product, Color accentColor) {
+    final productId = product['id'] as int? ?? 0;
+    final productName = product['name']?.toString() ?? 'Product';
+    final series = product['series']?.toString() ?? '';
+    final k = _key(programId, productId);
+    final captured = _capturedImages[k];
+    final isClaiming = _claimingKeys.contains(k);
+
+    return Column(
       children: [
-        MobileScanner(controller: _scannerController, onDetect: _onDetect),
-        Center(
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              border: Border.all(color: _brandColor, width: 3),
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 20,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Point camera at brand QR code',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 20,
-          right: 20,
-          child: IconButton(
-            onPressed: () => _scannerController?.toggleTorch(),
-            icon: const Icon(Icons.flash_on, color: Colors.white),
-            style: IconButton.styleFrom(backgroundColor: Colors.black54),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWaitingView() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF3E0),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.qr_code_scanner,
-              size: 50,
-              color: Color(0xFFFF8F00),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Claim Your Reward',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Scan the QR code provided by the brand to claim your reward',
-            style: TextStyle(color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isScanning = true;
-                  _hasScanned = false;
-                  _isRewardFound = false;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF8F00),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+          child: Row(
+            children: [
+              // Product icon
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.solar_power_outlined,
+                  size: 20,
+                  color: accentColor,
                 ),
               ),
-              child: const Text(
-                'Start Scanning',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(width: 10),
+
+              // Product name + series
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      productName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (series.isNotEmpty)
+                      Text(
+                        series,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildRewardFoundView() {
-    return Container(
-      padding: const EdgeInsets.all(30),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+              // ── Scan / re-scan button ─────────────────────────────────────
+              GestureDetector(
+                onTap: isClaiming
+                    ? null
+                    : () => _captureImage(programId, productId),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: captured != null
+                        ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
+                        : _kBrand.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: captured != null
+                          ? const Color(0xFF4CAF50).withValues(alpha: 0.5)
+                          : _kBrand.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Icon(
+                    captured != null ? Icons.camera_alt : Icons.qr_code_scanner,
+                    size: 20,
+                    color: captured != null ? const Color(0xFF4CAF50) : _kBrand,
+                  ),
+                ),
+              ),
+
+              // ── Claim button ───────────────────────────────────────────────
+              SizedBox(
+                height: 36,
+                child: ElevatedButton(
+                  onPressed: (captured != null && !isClaiming)
+                      ? () => _submitClaim(programId, productId)
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kBrand,
+                    disabledBackgroundColor: Colors.grey.shade200,
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor: Colors.grey.shade400,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: isClaiming
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              captured != null
+                                  ? Icons.send
+                                  : Icons.lock_outline,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'Claim',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Captured image preview ─────────────────────────────────────────────
+        if (captured != null)
           Container(
-            width: 80,
-            height: 80,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _brandColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.check_circle, size: 50, color: _brandColor),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            _brandName,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: _brandColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Reward Found!',
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+              color: const Color(0xFFF1F8E9),
               borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              _rewardAmount,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF4CAF50),
+              border: Border.all(
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
               ),
+            ),
+            child: Row(
+              children: [
+                // Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(
+                    captured,
+                    width: 64,
+                    height: 48,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 14,
+                            color: Color(0xFF4CAF50),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Image captured',
+                            style: TextStyle(
+                              color: Color(0xFF2E7D32),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Tap 📷 to retake · Tap "Claim" to submit',
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                // Remove / retake
+                GestureDetector(
+                  onTap: isClaiming
+                      ? null
+                      : () => setState(
+                          () => _capturedImages.remove(
+                            _key(programId, productId),
+                          ),
+                        ),
+                  child: const Icon(Icons.close, size: 18, color: Colors.grey),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 30),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Claimed!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildInvalidView() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF44336).withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.cancel, size: 50, color: Color(0xFFF44336)),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Invalid QR Code',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFF44336),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'This QR code is not valid for any reward',
-            style: TextStyle(color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isScanning = true;
-                  _hasScanned = false;
-                  _isRewardFound = false;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF8F00),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Scan Again',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstructions() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF3E0),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline, color: Color(0xFFFF8F00)),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Scan the QR code provided by the brand after completing the installation to claim your reward.',
-              style: TextStyle(color: Color(0xFFE65100), fontSize: 13),
-            ),
-          ),
-        ],
-      ),
+        const Divider(height: 1, indent: 16, endIndent: 16),
+      ],
     );
   }
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'controllers/brand_controller.dart';
 
 class ManualsPage extends StatefulWidget {
   const ManualsPage({super.key});
@@ -9,41 +12,14 @@ class ManualsPage extends StatefulWidget {
 }
 
 class _ManualsPageState extends State<ManualsPage> {
-  final List<Map<String, dynamic>> _manuals = [
-    {
-      'title': 'Installation Guide v2.0',
-      'description': 'Complete guide for solar panel installation',
-      'fileType': 'PDF',
-      'size': '2.5 MB',
-      'uploadedDate': '2025-04-01',
-    },
-    {
-      'title': 'Safety Protocols',
-      'description': 'Safety guidelines for installers',
-      'fileType': 'PDF',
-      'size': '1.2 MB',
-      'uploadedDate': '2025-03-25',
-    },
-    {
-      'title': 'Inverter Setup Manual',
-      'description': 'Step by step inverter configuration',
-      'fileType': 'DOCX',
-      'size': '800 KB',
-      'uploadedDate': '2025-03-15',
-    },
-    {
-      'title': 'Product Catalog 2025',
-      'description': 'All products with specifications',
-      'fileType': 'PDF',
-      'size': '5.2 MB',
-      'uploadedDate': '2025-03-01',
-    },
-  ];
-
   bool _showUploadForm = false;
+  String? _selectedFilePath;
+  String? _selectedFileName;
 
   @override
   Widget build(BuildContext context) {
+    final BrandController controller = Get.find<BrandController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -51,23 +27,17 @@ class _ManualsPageState extends State<ManualsPage> {
           children: [
             _buildHeader(context),
             if (_showUploadForm)
-              Expanded(child: _buildUploadForm())
+              Expanded(child: _buildUploadForm(controller))
             else
-              Expanded(child: _buildManualsList()),
+              Expanded(child: _buildManualsList(controller)),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => setState(() => _showUploadForm = !_showUploadForm),
         backgroundColor: const Color(0xFF2196F3),
-        icon: Icon(
-          _showUploadForm ? Icons.list : Icons.upload_file,
-          color: Colors.white,
-        ),
-        label: Text(
-          _showUploadForm ? 'View Manuals' : 'Upload Manual',
-          style: const TextStyle(color: Colors.white),
-        ),
+        icon: Icon(_showUploadForm ? Icons.list : Icons.upload_file, color: Colors.white),
+        label: Text(_showUploadForm ? 'View Manuals' : 'Upload Manual', style: const TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -91,123 +61,167 @@ class _ManualsPageState extends State<ManualsPage> {
             ),
           ),
           const SizedBox(width: 16),
-          const Text(
-            'Manuals',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
+          const Text('Manuals', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
         ],
       ),
     );
   }
 
-  Widget _buildUploadForm() {
+  Widget _buildUploadForm(BrandController controller) {
     final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    Future<void> pickFile() async {
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
+        );
+        if (result != null && result.files.single.path != null) {
+          setState(() {
+            _selectedFilePath = result.files.single.path;
+            _selectedFileName = result.files.single.name;
+          });
+        }
+      } catch (e) {
+        Get.snackbar('Error', 'Failed to pick file: $e',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.withValues(alpha: 0.8));
+      }
+    }
+
+    Future<void> uploadManual() async {
+      if (!formKey.currentState!.validate()) return;
+      if (_selectedFilePath == null) {
+        Get.snackbar('Error', 'Please select a PDF file',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.withValues(alpha: 0.8));
+        return;
+      }
+
+      final success = await controller.uploadManual(titleController.text, _selectedFilePath!);
+      if (success) {
+        setState(() {
+          _showUploadForm = false;
+          _selectedFilePath = null;
+          _selectedFileName = null;
+        });
+        titleController.clear();
+      }
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Upload Manual',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Title *',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: titleController,
-              decoration: _inputDecoration('e.g. Installation Guide v2.0'),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Description (optional)',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: descriptionController,
-              maxLines: 2,
-              decoration: _inputDecoration(
-                'Brief description of this document...',
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Upload Manual', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              const Text('Title *', style: TextStyle(fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: titleController,
+                decoration: _inputDecoration('e.g. Installation Guide v2.0'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Title is required';
+                  }
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('File *', style: TextStyle(fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+              const SizedBox(height: 16),
+              const Text('File (PDF) *', style: TextStyle(fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: pickFile,
+                child: Container(
+                  width: double.infinity,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: _selectedFileName != null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle, size: 40, color: Colors.green),
+                            const SizedBox(height: 8),
+                            Text(_selectedFileName!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        )
+                      : const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.cloud_upload_outlined, size: 40, color: Colors.grey),
+                            SizedBox(height: 8),
+                            Text('Tap to select PDF file', style: TextStyle(color: Colors.grey)),
+                            SizedBox(height: 4),
+                            Text('PDF only — max 10 MB', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          ],
+                        ),
+                ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 24),
+              Row(
                 children: [
-                  const Icon(
-                    Icons.cloud_upload_outlined,
-                    size: 40,
-                    color: Colors.grey,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => setState(() {
+                        _showUploadForm = false;
+                        _selectedFilePath = null;
+                        _selectedFileName = null;
+                      }),
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                      child: const Text('Cancel'),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'No file chosen',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'PDF, DOC, DOCX, PPT, PPTX — max 20 MB',
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (!formKey.currentState!.validate()) return;
+                        if (_selectedFilePath == null) {
+                          Get.snackbar('Error', 'Please select a PDF file',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red.withValues(alpha: 0.8));
+                          return;
+                        }
+
+                        final success = await controller.uploadManual(titleController.text, _selectedFilePath!);
+                        if (success) {
+                          await Future.delayed(const Duration(milliseconds: 500));
+                          setState(() {
+                            _showUploadForm = false;
+                            _selectedFilePath = null;
+                            _selectedFileName = null;
+                          });
+                          titleController.clear();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2196F3),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Upload'),
+                    ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  Get.snackbar(
-                    'Success',
-                    'Manual uploaded successfully!',
-                    backgroundColor: const Color(0xFF4CAF50),
-                    colorText: Colors.white,
-                  );
-                  setState(() => _showUploadForm = false);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Upload',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -218,101 +232,110 @@ class _ManualsPageState extends State<ManualsPage> {
       hintText: hint,
       filled: true,
       fillColor: const Color(0xFFF5F5F5),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
     );
   }
 
-  Widget _buildManualsList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _manuals.length,
-      itemBuilder: (context, index) {
-        final manual = _manuals[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+  Widget _buildManualsList(BrandController controller) {
+    return Obx(() {
+      if (controller.manualsLoading.value && controller.manuals.isEmpty) {
+        return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+      }
+      if (controller.manuals.isEmpty) {
+        return const Center(child: Text('No manuals uploaded yet', style: TextStyle(color: Colors.grey)));
+      }
+      return RefreshIndicator(
+        onRefresh: () => controller.fetchManuals(refresh: true),
+        child: ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: controller.manuals.length,
+          itemBuilder: (context, index) {
+            final manual = controller.manuals[index] as Map;
+            final fileUrl = manual['file_url'] as String?;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    manual['fileType'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
-                      fontSize: 11,
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Text('PDF', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2196F3), fontSize: 11)),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      manual['title'],
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      manual['description'],
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          manual['size'],
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          manual['uploadedDate'],
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                          ),
+                        Text(manual['title'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        if (manual['description'] != null && (manual['description'] as String).isNotEmpty)
+                          Text(manual['description'], style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (manual['file_size'] != null)
+                              Text('${((manual['file_size'] as num) / 1024).toStringAsFixed(0)} KB', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            if (manual['file_size'] != null) const SizedBox(width: 12),
+                            Text(manual['created_at']?.toString().split('T').first ?? '', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  if (fileUrl != null)
+                    IconButton(
+                      onPressed: () async {
+                        final uri = Uri.parse(fileUrl);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else {
+                          Get.snackbar('Error', 'Cannot open file',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red.withValues(alpha: 0.8),
+                              colorText: Colors.white);
+                        }
+                      },
+                      icon: const Icon(Icons.download, color: Color(0xFF2196F3)),
+                    ),
+                  IconButton(
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete Manual'),
+                          content: const Text('Are you sure you want to delete this manual?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        controller.deleteManual(manual['id'] as int);
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  ),
+                ],
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.download, color: Color(0xFF2196F3)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+            );
+          },
+        ),
+      );
+    });
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:solar_partner/features/shopkeeper/controllers/shopkeeper_controller.dart';
 
 class JobsPage extends StatefulWidget {
   const JobsPage({super.key});
@@ -9,20 +10,7 @@ class JobsPage extends StatefulWidget {
 }
 
 class _JobsPageState extends State<JobsPage> {
-  final List<Map<String, dynamic>> _jobs = [
-    {
-      'title': 'solar installation',
-      'status': 'Open',
-      'city': 'Karachi',
-      'budget': 'PKR 3,000',
-      'posted': '16 Apr 2026',
-      'deadline': '23 Apr 2026',
-      'region': 'Sindh',
-      'description': 'here is description',
-      'skills': 'inverter installation',
-      'address': 'houseno 121 kjkwk',
-    },
-  ];
+  final ShopkeeperController controller = Get.find<ShopkeeperController>();
 
   String _searchQuery = '';
   String _selectedFilter = 'All';
@@ -30,30 +18,56 @@ class _JobsPageState extends State<JobsPage> {
   Map<String, dynamic>? _selectedJob;
 
   @override
+  void initState() {
+    super.initState();
+    if (controller.jobs.isEmpty) {
+      controller.fetchJobs(refresh: true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_showJobDetails && _selectedJob != null) {
       return _buildJobDetailsView();
     }
-
-    final filteredJobs = _jobs.where((j) {
-      final matchesSearch =
-          _searchQuery.isEmpty ||
-          j['title'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-      final matchesFilter =
-          _selectedFilter == 'All' || j['status'] == _selectedFilter;
-      return matchesSearch && matchesFilter;
-    }).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            Obx(() => _buildHeader(context)),
             _buildSearchBar(),
-            Expanded(child: _buildJobsList(filteredJobs)),
+            Expanded(
+              child: Obx(() {
+                if (controller.jobsLoading.value &&
+                    controller.jobs.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF9C27B0),
+                    ),
+                  );
+                }
+
+                final filteredJobs = controller.jobs.where((j) {
+                  final job = j as Map;
+                  final matchesSearch = _searchQuery.isEmpty ||
+                      (job['title'] ?? '')
+                          .toString()
+                          .toLowerCase()
+                          .contains(_searchQuery.toLowerCase());
+                  final matchesFilter = _selectedFilter == 'All' ||
+                      (job['status'] ?? '') == _selectedFilter;
+                  return matchesSearch && matchesFilter;
+                }).toList();
+
+                return RefreshIndicator(
+                  color: const Color(0xFF9C27B0),
+                  onRefresh: () => controller.fetchJobs(refresh: true),
+                  child: _buildJobsList(filteredJobs),
+                );
+              }),
+            ),
           ],
         ),
       ),
@@ -92,7 +106,7 @@ class _JobsPageState extends State<JobsPage> {
                   ),
                 ),
                 Text(
-                  '${_jobs.length} job(s) total',
+                  '${controller.jobs.length} job(s) total',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
@@ -102,7 +116,8 @@ class _JobsPageState extends State<JobsPage> {
             onPressed: () => Get.to(() => const CreateJobPage()),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF9C27B0),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             icon: const Icon(Icons.add, size: 18, color: Colors.white),
             label: const Text(
@@ -125,7 +140,8 @@ class _JobsPageState extends State<JobsPage> {
               onChanged: (value) => setState(() => _searchQuery = value),
               decoration: InputDecoration(
                 hintText: 'Search jobs...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                prefixIcon:
+                    const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -143,18 +159,20 @@ class _JobsPageState extends State<JobsPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.filter_list, color: Color(0xFF9C27B0)),
+              child:
+                  const Icon(Icons.filter_list, color: Color(0xFF9C27B0)),
             ),
-            onSelected: (value) => setState(() => _selectedFilter = value),
+            onSelected: (value) =>
+                setState(() => _selectedFilter = value),
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'All', child: Text('All')),
-              const PopupMenuItem(value: 'Open', child: Text('Open')),
+              const PopupMenuItem(value: 'open', child: Text('Open')),
               const PopupMenuItem(
-                value: 'In Progress',
-                child: Text('In Progress'),
-              ),
-              const PopupMenuItem(value: 'Completed', child: Text('Completed')),
-              const PopupMenuItem(value: 'Cancelled', child: Text('Cancelled')),
+                  value: 'in_progress', child: Text('In Progress')),
+              const PopupMenuItem(
+                  value: 'completed', child: Text('Completed')),
+              const PopupMenuItem(
+                  value: 'cancelled', child: Text('Cancelled')),
             ],
           ),
         ],
@@ -162,17 +180,21 @@ class _JobsPageState extends State<JobsPage> {
     );
   }
 
-  Widget _buildJobsList(List<Map<String, dynamic>> jobs) {
+  Widget _buildJobsList(List<dynamic> jobs) {
     if (jobs.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.work_off, size: 48, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No jobs found', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
+      return ListView(
+        children: const [
+          SizedBox(height: 120),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.work_off, size: 48, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('No jobs found',
+                  style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ],
       );
     }
 
@@ -180,7 +202,19 @@ class _JobsPageState extends State<JobsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: jobs.length,
       itemBuilder: (context, index) {
-        final job = jobs[index];
+        final job =
+            Map<String, dynamic>.from(jobs[index] as Map);
+        final budgetRaw = job['budget'];
+        final budgetDisplay =
+            budgetRaw != null ? 'PKR $budgetRaw' : 'N/A';
+        final createdAt = job['created_at'] ?? '';
+        final displayDate = createdAt.length >= 10
+            ? createdAt.substring(0, 10)
+            : createdAt;
+        // Backend returns skills_required, not city
+        final skillsOrDate =
+            job['skills_required']?.toString() ?? '';
+
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -206,7 +240,7 @@ class _JobsPageState extends State<JobsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          job['title'],
+                          job['title'] ?? '',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -215,13 +249,21 @@ class _JobsPageState extends State<JobsPage> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            _buildStatusBadge(job['status']),
+                            _buildStatusBadge(job['status'] ?? ''),
                             const SizedBox(width: 8),
-                            Text(
-                              '${job['city']} · ${job['budget']} · ${job['posted']}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
+                            Expanded(
+                              child: Text(
+                                [
+                                  if (skillsOrDate.isNotEmpty)
+                                    skillsOrDate,
+                                  budgetDisplay,
+                                  if (displayDate.isNotEmpty) displayDate,
+                                ].join(' · '),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -249,15 +291,16 @@ class _JobsPageState extends State<JobsPage> {
                       ),
                       const SizedBox(height: 8),
                       OutlinedButton(
-                        onPressed: () => Get.to(() => CreateJobPage(job: job)),
+                        onPressed: () => _confirmDelete(job),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF9C27B0),
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,
                           ),
                         ),
-                        child: const Text('Edit'),
+                        child: const Text('Delete'),
                       ),
                     ],
                   ),
@@ -270,21 +313,46 @@ class _JobsPageState extends State<JobsPage> {
     );
   }
 
+  void _confirmDelete(Map<String, dynamic> job) {
+    Get.defaultDialog(
+      title: 'Delete Job',
+      middleText:
+          'Are you sure you want to delete "${job['title']}"?',
+      textConfirm: 'Delete',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.red,
+      onConfirm: () async {
+        Get.back();
+        final id = job['id'];
+        if (id != null) {
+          await controller.deleteJob(int.parse(id.toString()));
+        }
+      },
+    );
+  }
+
   Widget _buildStatusBadge(String status) {
     Color color;
-    switch (status) {
-      case 'Completed':
+    switch (status.toLowerCase()) {
+      case 'completed':
         color = const Color(0xFF4CAF50);
         break;
-      case 'In Progress':
+      case 'in_progress':
+      case 'in progress':
         color = const Color(0xFF2196F3);
         break;
-      case 'Open':
+      case 'open':
         color = const Color(0xFFFF9800);
         break;
       default:
         color = Colors.red;
     }
+
+    final displayText = status.isEmpty
+        ? 'Unknown'
+        : status[0].toUpperCase() +
+            status.substring(1).replaceAll('_', ' ');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -293,7 +361,7 @@ class _JobsPageState extends State<JobsPage> {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        status,
+        displayText,
         style: TextStyle(
           fontSize: 11,
           color: color,
@@ -304,6 +372,15 @@ class _JobsPageState extends State<JobsPage> {
   }
 
   Widget _buildJobDetailsView() {
+    final job = _selectedJob!;
+    final budgetRaw = job['budget'];
+    final budgetDisplay =
+        budgetRaw != null ? 'PKR $budgetRaw' : 'N/A';
+    final createdAt = job['created_at'] ?? '';
+    final displayDate = createdAt.length >= 10
+        ? createdAt.substring(0, 10)
+        : createdAt;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -315,12 +392,14 @@ class _JobsPageState extends State<JobsPage> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => setState(() => _showJobDetails = false),
+                    onTap: () =>
+                        setState(() => _showJobDetails = false),
                     child: Container(
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                        color: const Color(0xFF9C27B0)
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -332,14 +411,14 @@ class _JobsPageState extends State<JobsPage> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      _selectedJob!['title'],
+                      job['title'] ?? '',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  _buildStatusBadge(_selectedJob!['status']),
+                  _buildStatusBadge(job['status'] ?? ''),
                 ],
               ),
             ),
@@ -355,11 +434,15 @@ class _JobsPageState extends State<JobsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDetailRow('Budget', _selectedJob!['budget']),
-                      _buildDetailRow('City', _selectedJob!['city']),
-                      _buildDetailRow('Posted', _selectedJob!['posted']),
-                      _buildDetailRow('Deadline', _selectedJob!['deadline']),
-                      _buildDetailRow('Region', _selectedJob!['region']),
+                      _buildDetailRow('Budget', budgetDisplay),
+                      _buildDetailRow('Skills Required',
+                          job['skills_required']?.toString() ?? 'N/A'),
+                      _buildDetailRow('Deadline',
+                          job['deadline']?.toString() ?? 'N/A'),
+                      _buildDetailRow('Posted',
+                          displayDate.isNotEmpty ? displayDate : 'N/A'),
+                      _buildDetailRow('Address',
+                          job['address']?.toString() ?? 'N/A'),
                       const SizedBox(height: 16),
                       const Text(
                         'Description',
@@ -369,27 +452,7 @@ class _JobsPageState extends State<JobsPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(_selectedJob!['description']),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Required Skills',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(_selectedJob!['skills']),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Address',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(_selectedJob!['address']),
+                      Text(job['description'] ?? ''),
                       const SizedBox(height: 24),
                       const Text(
                         'Installer Applications',
@@ -399,33 +462,33 @@ class _JobsPageState extends State<JobsPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'No applications yet.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      ),
+                      _buildAssignmentsSection(job),
                       const SizedBox(height: 24),
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => Get.to(
-                                () => CreateJobPage(job: _selectedJob),
-                              ),
+                              onPressed: () =>
+                                  Get.to(() => CreateJobPage(job: job)),
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
+                                    vertical: 14),
                               ),
                               child: const Text('Edit'),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _confirmDelete(job),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side:
+                                    const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 14),
+                              ),
+                              child: const Text('Delete'),
                             ),
                           ),
                         ],
@@ -441,6 +504,180 @@ class _JobsPageState extends State<JobsPage> {
     );
   }
 
+  Widget _buildAssignmentsSection(Map<String, dynamic> job) {
+    final jobId = job['id'];
+    if (jobId == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(
+            child: Text('No applications yet.',
+                style: TextStyle(color: Colors.grey))),
+      );
+    }
+
+    return FutureBuilder<List>(
+      future: controller
+          .fetchJobAssignments(int.parse(jobId.toString())),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+              child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(
+                color: Color(0xFF9C27B0), strokeWidth: 2),
+          ));
+        }
+        final assignments = snapshot.data ?? [];
+        if (assignments.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Center(
+                child: Text('No applications yet.',
+                    style: TextStyle(color: Colors.grey))),
+          );
+        }
+        return Column(
+          children: assignments.map((a) {
+            final assignment = a as Map;
+            final installerName =
+                assignment['installer_name']?.toString() ?? 'Installer';
+            final status =
+                assignment['status']?.toString() ?? 'assigned';
+            final installerId = assignment['installer_id'];
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor:
+                            const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                        child: Text(
+                            installerName.isNotEmpty
+                                ? installerName[0].toUpperCase()
+                                : 'I',
+                            style: const TextStyle(
+                                color: Color(0xFF9C27B0),
+                                fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(installerName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500)),
+                            Text(status,
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                      if (status == 'completed' && installerId != null)
+                        Row(children: [
+                          TextButton(
+                            onPressed: () async {
+                              final confirmed = await Get.defaultDialog<bool>(
+                                title: 'Release Payment',
+                                middleText:
+                                    'Release payment to $installerName?',
+                                textConfirm: 'Confirm',
+                                textCancel: 'Cancel',
+                                confirmTextColor: Colors.white,
+                                buttonColor: const Color(0xFF9C27B0),
+                                onConfirm: () => Get.back(result: true),
+                                onCancel: () => Get.back(result: false),
+                              );
+                              if (confirmed == true) {
+                                await controller.releasePayment(
+                                  int.parse(jobId.toString()),
+                                  int.parse(installerId.toString()),
+                                  double.tryParse(
+                                          job['budget']?.toString() ?? '0') ??
+                                      0,
+                                );
+                              }
+                            },
+                            child: const Text('Pay',
+                                style:
+                                    TextStyle(color: Color(0xFF4CAF50))),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final reasonController =
+                                  TextEditingController();
+                              final confirmed = await Get.defaultDialog<bool>(
+                                title: 'Raise Dispute',
+                                content: TextField(
+                                  controller: reasonController,
+                                  decoration: const InputDecoration(
+                                      hintText: 'Reason for dispute'),
+                                ),
+                                textConfirm: 'Submit',
+                                textCancel: 'Cancel',
+                                confirmTextColor: Colors.white,
+                                buttonColor: Colors.red,
+                                onConfirm: () => Get.back(result: true),
+                                onCancel: () => Get.back(result: false),
+                              );
+                              if (confirmed == true &&
+                                  reasonController.text.isNotEmpty) {
+                                await controller.raiseDispute(
+                                  int.parse(jobId.toString()),
+                                  int.parse(installerId.toString()),
+                                  reasonController.text.trim(),
+                                );
+                              }
+                            },
+                            child: const Text('Dispute',
+                                style: TextStyle(color: Colors.red)),
+                          ),
+                        ]),
+                    ],
+                  ),
+                  if ((assignment['payment_released_at'] != null) &&
+                      (assignment['payment_received_at'] == null))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Awaiting installer confirmation',
+                        style: TextStyle(fontSize: 11, color: Colors.orange[700]),
+                      ),
+                    ),
+                  if (assignment['payment_received_at'] != null)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        '✅ Payment confirmed',
+                        style: TextStyle(fontSize: 11, color: Colors.green),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -448,7 +685,10 @@ class _JobsPageState extends State<JobsPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Flexible(
+              child: Text(value,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.end)),
         ],
       ),
     );
@@ -465,23 +705,32 @@ class CreateJobPage extends StatefulWidget {
 }
 
 class _CreateJobPageState extends State<CreateJobPage> {
+  final ShopkeeperController controller =
+      Get.find<ShopkeeperController>();
+
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final budgetController = TextEditingController();
   final addressController = TextEditingController();
   final skillsController = TextEditingController();
-  final deadlineController = TextEditingController();
+
+  DateTime? _deadlineDate;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.job != null) {
-      titleController.text = widget.job!['title'] ?? '';
-      descriptionController.text = widget.job!['description'] ?? '';
-      budgetController.text = widget.job!['budget'] ?? '';
-      addressController.text = widget.job!['address'] ?? '';
-      skillsController.text = widget.job!['skills'] ?? '';
-      deadlineController.text = widget.job!['deadline'] ?? '';
+      final job = widget.job!;
+      titleController.text = job['title'] ?? '';
+      descriptionController.text = job['description'] ?? '';
+      budgetController.text = job['budget']?.toString() ?? '';
+      addressController.text = job['address']?.toString() ?? '';
+      skillsController.text = job['skills_required']?.toString() ?? '';
+      final deadlineStr = job['deadline']?.toString();
+      if (deadlineStr != null && deadlineStr.length >= 10) {
+        _deadlineDate = DateTime.tryParse(deadlineStr);
+      }
     }
   }
 
@@ -505,7 +754,8 @@ class _CreateJobPageState extends State<CreateJobPage> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                        color: const Color(0xFF9C27B0)
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -551,82 +801,117 @@ class _CreateJobPageState extends State<CreateJobPage> {
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Job Title *',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                      const Text('Job Title *',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: titleController,
                         decoration: _inputDecoration(
-                          'e.g. Solar Panel Installation',
-                        ),
+                            'e.g. Solar Panel Installation'),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Description *',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                      const Text('Description *',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: descriptionController,
                         maxLines: 3,
-                        decoration: _inputDecoration('Describe the job...'),
+                        decoration:
+                            _inputDecoration('Describe the job...'),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Budget (PKR) *',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                      const Text('Budget (PKR) *',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: budgetController,
-                        keyboardType: TextInputType.number,
-                        decoration: _inputDecoration('e.g. 12000'),
+                        keyboardType:
+                            const TextInputType.numberWithOptions(
+                                decimal: true),
+                        decoration:
+                            _inputDecoration('e.g. 12000'),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Address *',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                      const Text('Address *',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: addressController,
-                        decoration: _inputDecoration('Job location address'),
+                        decoration:
+                            _inputDecoration('Job site address'),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Required Skills *',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                      const Text('Skills Required',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: skillsController,
                         decoration: _inputDecoration(
-                          'e.g. Solar Installation, Electrical',
-                        ),
+                            'e.g. Solar Installation, Electrical'),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Deadline *',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                      const Text('Deadline *',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: deadlineController,
-                        readOnly: true,
-                        decoration: _inputDecoration('Select deadline date'),
+                      GestureDetector(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _deadlineDate ??
+                                DateTime.now()
+                                    .add(const Duration(days: 7)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now()
+                                .add(const Duration(days: 365)),
+                            builder: (context, child) => Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.light(
+                                  primary: Color(0xFF9C27B0),
+                                ),
+                              ),
+                              child: child!,
+                            ),
+                          );
+                          if (picked != null) {
+                            setState(() => _deadlineDate = picked);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_today,
+                                  color: Colors.grey, size: 18),
+                              const SizedBox(width: 12),
+                              Text(
+                                _deadlineDate != null
+                                    ? '${_deadlineDate!.year}-${_deadlineDate!.month.toString().padLeft(2, '0')}-${_deadlineDate!.day.toString().padLeft(2, '0')}'
+                                    : 'Select deadline date',
+                                style: TextStyle(
+                                  color: _deadlineDate != null
+                                      ? Colors.black87
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => Get.back(),
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () => Get.back(),
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
+                                    vertical: 14),
                               ),
                               child: const Text('Cancel'),
                             ),
@@ -634,25 +919,30 @@ class _CreateJobPageState extends State<CreateJobPage> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () {
-                                Get.snackbar(
-                                  'Success',
-                                  isEditing ? 'Job updated!' : 'Job created!',
-                                  backgroundColor: const Color(0xFF4CAF50),
-                                  colorText: Colors.white,
-                                );
-                                Get.back();
-                              },
+                              onPressed:
+                                  _isSubmitting ? null : _submit,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF9C27B0),
+                                backgroundColor:
+                                    const Color(0xFF9C27B0),
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
+                                    vertical: 14),
                               ),
-                              child: Text(
-                                isEditing ? 'Update Job' : 'Create Job',
-                                style: const TextStyle(color: Colors.white),
-                              ),
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      isEditing
+                                          ? 'Update Job'
+                                          : 'Create Job',
+                                      style: const TextStyle(
+                                          color: Colors.white),
+                                    ),
                             ),
                           ),
                         ],
@@ -666,6 +956,75 @@ class _CreateJobPageState extends State<CreateJobPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    final title = titleController.text.trim();
+    final description = descriptionController.text.trim();
+    final budgetText = budgetController.text.trim();
+    final address = addressController.text.trim();
+
+    if (title.isEmpty ||
+        description.isEmpty ||
+        budgetText.isEmpty ||
+        address.isEmpty) {
+      Get.snackbar(
+        'Validation',
+        'Please fill in all required fields.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    if (_deadlineDate == null) {
+      Get.snackbar(
+        'Validation',
+        'Please select a deadline date.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    final budget = double.tryParse(budgetText);
+    if (budget == null) {
+      Get.snackbar(
+        'Validation',
+        'Budget must be a valid number.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final deadlineStr =
+        '${_deadlineDate!.year}-${_deadlineDate!.month.toString().padLeft(2, '0')}-${_deadlineDate!.day.toString().padLeft(2, '0')}';
+
+    final data = {
+      'title': title,
+      'description': description,
+      'address': address,
+      'budget': budget,
+      'deadline': deadlineStr,
+      if (skillsController.text.trim().isNotEmpty)
+        'skills_required': skillsController.text.trim(),
+    };
+
+    bool success;
+    if (widget.job != null) {
+      final id = widget.job!['id'];
+      success =
+          await controller.updateJob(int.parse(id.toString()), data);
+    } else {
+      success = await controller.createJob(data);
+    }
+
+    if (mounted) setState(() => _isSubmitting = false);
+
+    if (success) {
+      // Navigate back to jobs list immediately
+      Get.back();
+    }
   }
 
   InputDecoration _inputDecoration(String hint) {
@@ -687,7 +1046,6 @@ class _CreateJobPageState extends State<CreateJobPage> {
     budgetController.dispose();
     addressController.dispose();
     skillsController.dispose();
-    deadlineController.dispose();
     super.dispose();
   }
 }

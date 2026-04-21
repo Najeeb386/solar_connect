@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:solar_partner/features/auth/controllers/auth_controller.dart';
-import '../controllers/auth_controller.dart';
 import 'signup.dart';
-import 'otp_check.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -23,7 +21,6 @@ class LoginPage extends StatelessWidget {
               children: [
                 const SizedBox(height: 60),
 
-                // Logo
                 Center(
                   child: Container(
                     width: 80,
@@ -74,7 +71,6 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // Email
                 _buildTextField(
                   "Email",
                   Icons.email_outlined,
@@ -84,7 +80,6 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Password
                 Obx(
                   () => TextField(
                     controller: authController.passwordController,
@@ -121,47 +116,6 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // Role Selector
-                Obx(
-                  () => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Login as",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildRoleChip(
-                            "Installer",
-                            0,
-                            authController.selectedRole.value,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildRoleChip(
-                            "Brand",
-                            1,
-                            authController.selectedRole.value,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildRoleChip(
-                            "Shopkeeper",
-                            2,
-                            authController.selectedRole.value,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
@@ -178,7 +132,6 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // Login Button
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -221,7 +174,6 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // Sign Up Link
                 GestureDetector(
                   onTap: () => Get.to(() => const SignUpPage()),
                   child: Center(
@@ -271,31 +223,6 @@ class LoginPage extends StatelessWidget {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoleChip(String label, int role, int selected) {
-    final authController = Get.find<AuthController>();
-    final isSelected = selected == role;
-    return GestureDetector(
-      onTap: () => authController.selectRole(role),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFF8F00) : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFFF8F00) : Colors.grey.shade300,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey,
-            fontWeight: FontWeight.w500,
-          ),
         ),
       ),
     );
