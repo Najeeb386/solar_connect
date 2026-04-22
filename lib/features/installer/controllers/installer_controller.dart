@@ -457,7 +457,12 @@ class InstallerController extends GetxController {
       walletLoading.value = false;
       if (res.success && res.data != null) {
         final data = res.data as Map<String, dynamic>;
-        final balanceVal = data['current_balance'] ?? data['balance'] ?? 0;
+        // Check all possible balance fields
+        final balanceVal =
+            data['wallet_balance'] ??
+            data['current_balance'] ??
+            data['balance'] ??
+            0;
         walletData.value = {
           'balance': balanceVal,
           'total_credited': data['total_credited'] ?? 0,
@@ -550,18 +555,28 @@ class InstallerController extends GetxController {
       final res = await _service.getKycStatus();
       if (res.success && res.data != null) {
         final data = res.data as Map<String, dynamic>;
+        // Get wallet balance - try multiple fields
+        var balanceVal =
+            data['wallet_balance'] ??
+            data['current_balance'] ??
+            data['balance'] ??
+            0;
+
+        // If wallet API returns 0 but dashboard has balance, use dashboard balance
+        if (balanceVal == 0) {
+          final dashStats = dashboardData['stats'];
+          if (dashStats != null) {
+            balanceVal = dashStats['wallet_balance'] ?? 0;
+          }
+        }
+
         walletData.value = {
-          'balance': data['current_balance'] ?? data['balance'] ?? 0,
+          'balance': balanceVal,
           'total_credited': data['total_credited'] ?? 0,
           'total_debited': data['total_debited'] ?? 0,
-          'pending_credits': data['pending_credits'] ?? 0,
-          'pending_debits': data['pending_debits'] ?? 0,
         };
         final txList =
-            data['recent_transactions'] ??
-            data['transactions'] ??
-            data['data']?['transactions'] ??
-            [];
+            data['recent_transactions'] ?? data['transactions'] ?? [];
         if (txList is List) transactions.value = txList;
       }
       return null;
