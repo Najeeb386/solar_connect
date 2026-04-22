@@ -601,65 +601,108 @@ class DashboardHome extends StatelessWidget {
   }
 
   Widget _buildOffersSlider() {
-    final offers = [
-      {
-        'title': 'Flat 20% Off',
-        'subtitle': 'On Tesla Battery Installation',
-        'brand': 'Tesla',
-        'color': const Color(0xFFE91E63),
-      },
-      {
-        'title': 'Get Rs 500 Bonus',
-        'subtitle': 'On every EcoSolar Panel',
-        'brand': 'EcoSolar',
-        'color': const Color(0xFF2196F3),
-      },
-      {
-        'title': 'Rs 1000 Cashback',
-        'subtitle': 'On Huawei System Install',
-        'brand': 'Huawei',
-        'color': const Color(0xFFFF5722),
-      },
-      {
-        'title': 'Free Installation',
-        'subtitle': 'On Growatt Inverters',
-        'brand': 'Growatt',
-        'color': const Color(0xFF00BCD4),
-      },
-    ];
+    final controller = Get.find<InstallerController>();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            'Latest Offers',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+    return Obx(() {
+      if (controller.programsLoading.value) {
+        return const SizedBox(
+          height: 140,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      }
+
+      final programs = controller.topPrograms;
+
+      // If no programs from API, use sample data
+      final offers = programs.isNotEmpty
+          ? programs.map((p) {
+              final reward =
+                  double.tryParse(p['reward']?.toString() ?? '0') ?? 0;
+              final colors = [
+                const Color(0xFFE91E63),
+                const Color(0xFF2196F3),
+                const Color(0xFFFF5722),
+                const Color(0xFF00BCD4),
+                const Color(0xFF4CAF50),
+              ];
+              final colorIndex = programs.indexOf(p) % colors.length;
+              return {
+                'title': 'Rs ${reward.toStringAsFixed(0)} Reward',
+                'subtitle': p['title']?.toString() ?? 'Program',
+                'brand': p['brand_name']?.toString() ?? 'Brand',
+                'color': colors[colorIndex],
+                'id': p['id'],
+              };
+            }).toList()
+          : [
+              {
+                'title': 'Earn Rs 500',
+                'subtitle': 'Solar Panel Install',
+                'brand': 'EcoSolar',
+                'color': const Color(0xFFE91E63),
+              },
+              {
+                'title': 'Earn Rs 1000',
+                'subtitle': 'Inverter Setup',
+                'brand': 'Tesla',
+                'color': const Color(0xFF2196F3),
+              },
+              {
+                'title': 'Earn Rs 1500',
+                'subtitle': 'Battery Install',
+                'brand': 'Huawei',
+                'color': const Color(0xFFFF5722),
+              },
+            ];
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Top Programs',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => controller.changePage(6),
+                  child: const Text(
+                    'View All',
+                    style: TextStyle(color: Color(0xFFFF8F00)),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        CarouselSlider.builder(
-          itemCount: offers.length,
-          options: CarouselOptions(
-            height: 140,
-            enlargeCenterPage: true,
-            viewportFraction: 0.85,
-            autoPlay: true,
-            autoPlayInterval: const Duration(seconds: 4),
-            autoPlayAnimationDuration: const Duration(milliseconds: 800),
+          const SizedBox(height: 12),
+          CarouselSlider.builder(
+            itemCount: offers.length,
+            options: CarouselOptions(
+              height: 140,
+              enlargeCenterPage: true,
+              viewportFraction: 0.85,
+              autoPlay: true,
+              autoPlayInterval: const Duration(seconds: 4),
+              autoPlayAnimationDuration: const Duration(milliseconds: 800),
+            ),
+            itemBuilder: (context, index, realIndex) {
+              final offer = offers[index];
+              return GestureDetector(
+                onTap: () => controller.changePage(6),
+                child: _buildOfferCard(offer),
+              );
+            },
           ),
-          itemBuilder: (context, index, realIndex) {
-            final offer = offers[index];
-            return _buildOfferCard(offer);
-          },
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
   Widget _buildOfferCard(Map<String, dynamic> offer) {
