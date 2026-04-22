@@ -62,18 +62,31 @@ class InstallerDashboard extends StatelessWidget {
               final storage = GetStorage();
               final storedUser = storage.read('user');
 
-              final userName = profileUser?['name'] ?? dashUser?['name'] ?? storedUser?['name'] ?? 'Installer';
-              final userEmail = profileUser?['email'] ?? dashUser?['email'] ?? storedUser?['email'] ?? '';
-              final kycStatus = controller.dashboardData['kyc_status']?.toString() ?? '';
-              final userStatus = profileUser?['status']?.toString()
-                  ?? dashUser?['status']?.toString()
-                  ?? storedUser?['status']?.toString()
-                  ?? 'active';
-              final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'I';
-              final photoUrl = profileUser?['profile_photo']?.toString()
-                  ?? dashUser?['profile_photo']?.toString()
-                  ?? storedUser?['profile_photo']?.toString()
-                  ?? '';
+              final userName =
+                  profileUser?['name'] ??
+                  dashUser?['name'] ??
+                  storedUser?['name'] ??
+                  'Installer';
+              final userEmail =
+                  profileUser?['email'] ??
+                  dashUser?['email'] ??
+                  storedUser?['email'] ??
+                  '';
+              final kycStatus =
+                  controller.dashboardData['kyc_status']?.toString() ?? '';
+              final userStatus =
+                  profileUser?['status']?.toString() ??
+                  dashUser?['status']?.toString() ??
+                  storedUser?['status']?.toString() ??
+                  'active';
+              final initial = userName.isNotEmpty
+                  ? userName[0].toUpperCase()
+                  : 'I';
+              final photoUrl =
+                  profileUser?['profile_photo']?.toString() ??
+                  dashUser?['profile_photo']?.toString() ??
+                  storedUser?['profile_photo']?.toString() ??
+                  '';
 
               return Container(
                 width: double.infinity,
@@ -136,7 +149,10 @@ class InstallerDashboard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       userEmail,
-                      style: const TextStyle(fontSize: 13, color: Colors.white70),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.white70,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     // Account status badge
@@ -246,25 +262,25 @@ class InstallerDashboard extends StatelessWidget {
     final Color border;
 
     if (userStatus == 'suspended') {
-      icon   = Icons.block;
-      label  = 'Suspended';
-      bg     = Colors.red.withValues(alpha: 0.35);
+      icon = Icons.block;
+      label = 'Suspended';
+      bg = Colors.red.withValues(alpha: 0.35);
       border = Colors.redAccent.withValues(alpha: 0.7);
     } else if (kycStatus == 'approved') {
-      icon   = Icons.verified_user;
-      label  = 'Active';
-      bg     = Colors.green.withValues(alpha: 0.3);
+      icon = Icons.verified_user;
+      label = 'Active';
+      bg = Colors.green.withValues(alpha: 0.3);
       border = Colors.greenAccent.withValues(alpha: 0.6);
     } else if (kycStatus == 'pending') {
-      icon   = Icons.hourglass_top_rounded;
-      label  = 'In Review';
-      bg     = Colors.amber.withValues(alpha: 0.35);
+      icon = Icons.hourglass_top_rounded;
+      label = 'In Review';
+      bg = Colors.amber.withValues(alpha: 0.35);
       border = Colors.amberAccent.withValues(alpha: 0.7);
     } else {
       // not_submitted or rejected
-      icon   = Icons.warning_amber_rounded;
-      label  = 'Not Verified';
-      bg     = Colors.orange.withValues(alpha: 0.3);
+      icon = Icons.warning_amber_rounded;
+      label = 'Not Verified';
+      bg = Colors.orange.withValues(alpha: 0.3);
       border = Colors.orangeAccent.withValues(alpha: 0.6);
     }
 
@@ -282,7 +298,11 @@ class InstallerDashboard extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontSize: 11,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -407,9 +427,10 @@ class DashboardHome extends StatelessWidget {
     final userName = profileUser?['name'] ?? dashUser?['name'] ?? 'Installer';
     final userEmail = profileUser?['email'] ?? dashUser?['email'] ?? '';
     final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'I';
-    final photoUrl = profileUser?['profile_photo']?.toString()
-        ?? dashUser?['profile_photo']?.toString()
-        ?? '';
+    final photoUrl =
+        profileUser?['profile_photo']?.toString() ??
+        dashUser?['profile_photo']?.toString() ??
+        '';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -494,66 +515,27 @@ class DashboardHome extends StatelessWidget {
   Widget _buildKycBanner(InstallerController controller) {
     final kycStatus = controller.dashboardData['kyc_status']?.toString() ?? '';
 
-    // ── APPROVED: one-time green banner with ✕ ──────────────────────────────
+    // ── APPROVED: HIDE banner completely ──────────────────────────────
     if (kycStatus == 'approved') {
-      if (controller.kycApprovedBannerDismissed.value) return const SizedBox.shrink();
-      return _kycBannerTile(
-        color: const Color(0xFFE8F5E9),
-        border: const Color(0xFF4CAF50),
-        icon: Icons.verified_user,
-        iconColor: const Color(0xFF4CAF50),
-        title: 'KYC Verified',
-        subtitle: 'You are verified and can accept jobs!',
-        titleColor: const Color(0xFF2E7D32),
-        subtitleColor: const Color(0xFF388E3C),
-        onTap: null,
-        onDismiss: controller.dismissKycApprovedBanner,
-      );
+      return const SizedBox.shrink();
     }
 
-    // ── PENDING: always visible until approved ───────────────────────────────
-    if (kycStatus == 'pending') {
-      return _kycBannerTile(
-        color: const Color(0xFFFFF8E1),
-        border: Colors.amber,
-        icon: Icons.hourglass_top_rounded,
-        iconColor: Colors.amber,
-        title: 'Verification in Progress',
-        subtitle: 'Your KYC documents are under review.',
-        titleColor: const Color(0xFFF57F17),
-        subtitleColor: const Color(0xFFF57F17),
-        onTap: () => controller.changePage(3),
-        onDismiss: null, // permanent until approved
-      );
-    }
+    // ── NOT APPROVED: RED warning banner ──────────────────────────────
+    final bool isPending = kycStatus == 'pending';
 
-    // ── REJECTED: one-time red banner with ✕ ────────────────────────────────
-    if (kycStatus == 'rejected') {
-      if (controller.kycRejectedBannerDismissed.value) return const SizedBox.shrink();
-      return _kycBannerTile(
-        color: const Color(0xFFFFEBEE),
-        border: Colors.red,
-        icon: Icons.cancel_outlined,
-        iconColor: Colors.red,
-        title: 'KYC Rejected',
-        subtitle: 'Your documents were rejected. Tap to resubmit.',
-        titleColor: Colors.red.shade800,
-        subtitleColor: Colors.red.shade700,
-        onTap: () => controller.changePage(3),
-        onDismiss: controller.dismissKycRejectedBanner,
-      );
-    }
-
-    // ── NOT SUBMITTED: always visible ────────────────────────────────────────
     return _kycBannerTile(
-      color: const Color(0xFFFFF3E0),
-      border: const Color(0xFFFF8F00),
-      icon: Icons.badge_outlined,
-      iconColor: const Color(0xFFFF8F00),
-      title: 'Complete Your KYC',
-      subtitle: 'Upload CNIC to get verified and start accepting jobs.',
-      titleColor: const Color(0xFFE65100),
-      subtitleColor: const Color(0xFFE65100),
+      color: const Color(0xFFFFEBEE),
+      border: Colors.red,
+      icon: isPending
+          ? Icons.hourglass_top_rounded
+          : Icons.warning_amber_rounded,
+      iconColor: Colors.red,
+      title: isPending ? 'KYC Under Review' : 'KYC Not Verified',
+      subtitle: isPending
+          ? 'Your documents are under review. Please wait.'
+          : 'Complete your KYC to start accepting jobs!',
+      titleColor: Colors.red.shade800,
+      subtitleColor: Colors.red.shade700,
       onTap: () => controller.changePage(3),
       onDismiss: null,
     );
@@ -589,9 +571,19 @@ class DashboardHome extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(color: titleColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: titleColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(color: subtitleColor, fontSize: 11)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: subtitleColor, fontSize: 11),
+                  ),
                 ],
               ),
             ),
