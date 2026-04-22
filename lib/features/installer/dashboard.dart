@@ -611,9 +611,8 @@ class DashboardHome extends StatelessWidget {
         );
       }
 
-      final programs = controller.topPrograms;
+      final programs = controller.topPrograms.take(3).toList();
 
-      // If no programs from API, use sample data
       final offers = programs.isNotEmpty
           ? programs.map((p) {
               final reward =
@@ -660,45 +659,24 @@ class DashboardHome extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Top Programs',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => controller.changePage(6),
-                  child: const Text(
-                    'View All',
-                    style: TextStyle(color: Color(0xFFFF8F00)),
-                  ),
-                ),
-              ],
+            child: CarouselSlider.builder(
+              itemCount: offers.length,
+              options: CarouselOptions(
+                height: 140,
+                enlargeCenterPage: true,
+                viewportFraction: 0.85,
+                autoPlay: true,
+                autoPlayInterval: const Duration(seconds: 4),
+                autoPlayAnimationDuration: const Duration(milliseconds: 800),
+              ),
+              itemBuilder: (context, index, realIndex) {
+                final offer = offers[index];
+                return GestureDetector(
+                  onTap: () => controller.changePage(6),
+                  child: _buildOfferCard(offer),
+                );
+              },
             ),
-          ),
-          const SizedBox(height: 12),
-          CarouselSlider.builder(
-            itemCount: offers.length,
-            options: CarouselOptions(
-              height: 140,
-              enlargeCenterPage: true,
-              viewportFraction: 0.85,
-              autoPlay: true,
-              autoPlayInterval: const Duration(seconds: 4),
-              autoPlayAnimationDuration: const Duration(milliseconds: 800),
-            ),
-            itemBuilder: (context, index, realIndex) {
-              final offer = offers[index];
-              return GestureDetector(
-                onTap: () => controller.changePage(6),
-                child: _buildOfferCard(offer),
-              );
-            },
           ),
         ],
       );

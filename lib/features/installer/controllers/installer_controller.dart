@@ -158,23 +158,24 @@ class InstallerController extends GetxController {
   Future<void> fetchTopPrograms() async {
     try {
       programsLoading.value = true;
-      final res = await _service.getTopPrograms(limit: 5);
+      final res = await _service.getPrograms();
       programsLoading.value = false;
 
       if (res.success && res.data != null) {
-        final programsData = res.data['programs'] ?? [];
+        final programsData =
+            res.data['data'] ?? res.data['programs'] ?? res.data ?? [];
         if (programsData is List && programsData.isNotEmpty) {
           // Filter active programs and sort by reward amount
           final now = DateTime.now();
           final activePrograms = programsData.where((p) {
             if (p is! Map) return false;
             final expiryDateStr = p['end_date']?.toString() ?? '';
-            if (expiryDateStr.isEmpty) return false;
+            if (expiryDateStr.isEmpty) return true;
             try {
               final expiryDate = DateTime.parse(expiryDateStr);
               return expiryDate.isAfter(now);
             } catch (e) {
-              return false;
+              return true;
             }
           }).toList();
 
@@ -188,6 +189,8 @@ class InstallerController extends GetxController {
           });
 
           topPrograms.value = List.from(activePrograms.take(3));
+        } else if (programsData is List) {
+          topPrograms.value = List.from(programsData.take(3));
         }
       }
     } catch (e) {
