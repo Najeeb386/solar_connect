@@ -82,8 +82,11 @@ class _WalletPageState extends State<WalletPage> {
   }
 
   Widget _buildBalanceCard(BuildContext context) {
-    final balance = controller.walletData['balance'] ?? 0.0;
-    final balanceText = 'Rs ${double.tryParse(balance.toString())?.toStringAsFixed(2) ?? '0.00'}';
+    final balance = controller.walletData['balance'];
+    final balanceNum = balance != null
+        ? double.tryParse(balance.toString()) ?? 0.0
+        : 0.0;
+    final balanceText = 'Rs ${balanceNum.toStringAsFixed(2)}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -183,8 +186,11 @@ class _WalletPageState extends State<WalletPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.receipt_long_outlined,
-                              size: 48, color: Colors.grey),
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
                           SizedBox(height: 12),
                           Text(
                             'No transactions yet',
@@ -200,7 +206,8 @@ class _WalletPageState extends State<WalletPage> {
                     itemBuilder: (context, index) {
                       final tx = controller.transactions[index] as Map;
                       final type = tx['type'] ?? '';
-                      final isCredit = type.toString().toLowerCase() == 'credit';
+                      final isCredit =
+                          type.toString().toLowerCase() == 'credit';
                       final amount = tx['amount'] ?? 0;
                       final amountFormatted = isCredit
                           ? '+${double.tryParse(amount.toString())?.toStringAsFixed(2) ?? amount}'
@@ -235,8 +242,18 @@ class _WalletPageState extends State<WalletPage> {
     try {
       final dt = DateTime.parse(dateTimeStr).toLocal();
       final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       final date =
           '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
@@ -414,10 +431,10 @@ class _WalletPageState extends State<WalletPage> {
                           items: methods.map<DropdownMenuItem<int>>((m) {
                             final map = m as Map;
                             final id = int.tryParse(map['id'].toString()) ?? 0;
-                            final label = map['type_display'] ??
-                                map['type'] ??
-                                'Account';
-                            final masked = map['account_number_masked'] ??
+                            final label =
+                                map['type_display'] ?? map['type'] ?? 'Account';
+                            final masked =
+                                map['account_number_masked'] ??
                                 map['account_number'] ??
                                 '';
                             return DropdownMenuItem<int>(
@@ -461,14 +478,19 @@ class _WalletPageState extends State<WalletPage> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline,
-                              color: Color(0xFFFF8F00), size: 20),
+                          Icon(
+                            Icons.info_outline,
+                            color: Color(0xFFFF8F00),
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Please link and verify your bank account before withdrawing.',
                               style: TextStyle(
-                                  color: Color(0xFFE65100), fontSize: 13),
+                                color: Color(0xFFE65100),
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -496,7 +518,8 @@ class _WalletPageState extends State<WalletPage> {
                               ? null
                               : () async {
                                   final amountVal = double.tryParse(
-                                      amountController.text.trim());
+                                    amountController.text.trim(),
+                                  );
                                   if (amountVal == null || amountVal < 500) {
                                     Get.snackbar(
                                       'Error',
@@ -515,7 +538,9 @@ class _WalletPageState extends State<WalletPage> {
                                   }
                                   Navigator.pop(ctx);
                                   await controller.withdraw(
-                                      selectedMethodId!, amountVal);
+                                    selectedMethodId!,
+                                    amountVal,
+                                  );
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF8F00),

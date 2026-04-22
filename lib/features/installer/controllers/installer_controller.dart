@@ -456,27 +456,40 @@ class InstallerController extends GetxController {
       final res = await _service.getWallet();
       walletLoading.value = false;
       if (res.success && res.data != null) {
-        walletData.value = Map<String, dynamic>.from(res.data as Map);
+        final data = res.data as Map<String, dynamic>;
+        final balanceVal = data['current_balance'] ?? data['balance'] ?? 0;
+        walletData.value = {
+          'balance': balanceVal,
+          'total_credited': data['total_credited'] ?? 0,
+          'total_debited': data['total_debited'] ?? 0,
+        };
         final txList =
-            res.data['recent_transactions'] ?? res.data['transactions'] ?? [];
+            data['recent_transactions'] ?? data['transactions'] ?? [];
         if (txList is List) transactions.value = txList;
       } else {
-        Get.snackbar(
-          'Error',
-          res.message ?? 'Failed to load wallet',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.8),
-        );
+        // Fallback to dashboard wallet balance if wallet API fails
+        _loadWalletFromDashboard();
       }
       await fetchPaymentMethods();
     } catch (e) {
       walletLoading.value = false;
-      Get.snackbar(
-        'Error',
-        'Connection failed: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withValues(alpha: 0.8),
-      );
+      // Fallback to dashboard wallet balance on exception
+      _loadWalletFromDashboard();
+      await fetchPaymentMethods();
+    }
+  }
+
+  void _loadWalletFromDashboard() {
+    final dashStats = dashboardData['stats'];
+    if (dashStats != null) {
+      final walletBalance = dashStats['wallet_balance'] ?? 0;
+      walletData.value = {'balance': walletBalance};
+      // Try to get transactions from dashboard if available
+      final dashTx =
+          dashboardData['recent_transactions'] ?? dashboardData['transactions'];
+      if (dashTx is List) {
+        transactions.value = dashTx;
+      }
     }
   }
 
@@ -536,7 +549,20 @@ class InstallerController extends GetxController {
     try {
       final res = await _service.getKycStatus();
       if (res.success && res.data != null) {
-        return Map<String, dynamic>.from(res.data as Map);
+        final data = res.data as Map<String, dynamic>;
+        walletData.value = {
+          'balance': data['current_balance'] ?? data['balance'] ?? 0,
+          'total_credited': data['total_credited'] ?? 0,
+          'total_debited': data['total_debited'] ?? 0,
+          'pending_credits': data['pending_credits'] ?? 0,
+          'pending_debits': data['pending_debits'] ?? 0,
+        };
+        final txList =
+            data['recent_transactions'] ??
+            data['transactions'] ??
+            data['data']?['transactions'] ??
+            [];
+        if (txList is List) transactions.value = txList;
       }
       return null;
     } catch (e) {
