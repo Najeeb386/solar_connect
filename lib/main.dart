@@ -7,6 +7,7 @@ import 'package:solar_partner/features/auth/controllers/auth_controller.dart';
 import 'package:solar_partner/features/brand/dashboard.dart';
 import 'package:solar_partner/features/brand/controllers/brand_controller.dart';
 import 'package:solar_partner/features/installer/dashboard.dart';
+import 'package:solar_partner/features/installer/claim_history.dart';
 import 'package:solar_partner/features/installer/controllers/installer_controller.dart';
 import 'package:solar_partner/features/shopkeeper/dashboard.dart';
 import 'package:solar_partner/features/shopkeeper/controllers/shopkeeper_controller.dart';
@@ -64,6 +65,13 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/installer-dashboard',
           page: () => const InstallerDashboard(),
+          binding: BindingsBuilder(() {
+            Get.put(InstallerController());
+          }),
+        ),
+        GetPage(
+          name: '/installer-claim-history',
+          page: () => const ClaimHistoryPage(),
           binding: BindingsBuilder(() {
             Get.put(InstallerController());
           }),

@@ -225,16 +225,25 @@ class InstallerDashboard extends StatelessWidget {
                 context,
               ),
             ),
-            Obx(
-              () => _buildDrawerItem(
-                7,
-                Icons.qr_code,
-                'Claim Reward',
-                controller,
-                context,
+Obx(
+                () => _buildDrawerItem(
+                  7,
+                  Icons.qr_code,
+                  'Claim Reward',
+                  controller,
+                  context,
+                ),
               ),
-            ),
-            const Spacer(),
+              Obx(
+                () => _buildDrawerItem(
+                  8,
+                  Icons.history,
+                  'Claim History',
+                  controller,
+                  context,
+                ),
+              ),
+              const Spacer(),
             Padding(
               padding: const EdgeInsets.all(16),
               child: ListTile(
@@ -332,8 +341,13 @@ class InstallerDashboard extends StatelessWidget {
       selected: isSelected,
       selectedTileColor: const Color(0xFFFF8F00).withValues(alpha: 0.1),
       onTap: () {
-        controller.changePage(index);
-        Navigator.pop(context);
+        if (index == 8) {
+          Navigator.pop(context);
+          Get.toNamed('/installer-claim-history');
+        } else {
+          controller.changePage(index);
+          Navigator.pop(context);
+        }
       },
     );
   }
