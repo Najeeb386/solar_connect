@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'controllers/brand_controller.dart';
 
-class ProgramsPage extends StatelessWidget {
+class ProgramsPage extends StatefulWidget {
   const ProgramsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final BrandController controller = Get.find<BrandController>();
+  State<ProgramsPage> createState() => _ProgramsPageState();
+}
 
+class _ProgramsPageState extends State<ProgramsPage> {
+  final BrandController controller = Get.find<BrandController>();
+  bool _isGrid = false;
+  int _currentPage = 0;
+  static const int _pageSize = 10;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -23,16 +31,76 @@ class ProgramsPage extends StatelessWidget {
                 if (controller.programs.isEmpty) {
                   return const Center(child: Text('No programs yet', style: TextStyle(color: Colors.grey)));
                 }
-                return RefreshIndicator(
-                  onRefresh: () => controller.fetchPrograms(refresh: true),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: controller.programs.length,
-                    itemBuilder: (context, index) {
-                      final program = controller.programs[index] as Map;
-                      return _buildProgramCard(context, program, controller);
-                    },
-                  ),
+
+                final all = controller.programs.cast<Map>().toList();
+                final totalPages = (all.length / _pageSize).ceil();
+                final start = _currentPage * _pageSize;
+                final end = (start + _pageSize).clamp(0, all.length);
+                final paged = all.sublist(start, end);
+                final showPagination = all.length > _pageSize;
+
+                return Column(
+                  children: [
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () => controller.fetchPrograms(refresh: true),
+                        child: _isGrid
+                            ? GridView.builder(
+                                padding: const EdgeInsets.all(16),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.75,
+                                ),
+                                itemCount: paged.length,
+                                itemBuilder: (ctx, i) =>
+                                    _buildProgramCardGrid(ctx, paged[i]),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(20),
+                                itemCount: paged.length,
+                                itemBuilder: (ctx, i) =>
+                                    _buildProgramCard(ctx, paged[i], controller),
+                              ),
+                      ),
+                    ),
+                    if (showPagination)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        color: Colors.white,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton.icon(
+                              onPressed: _currentPage > 0
+                                  ? () => setState(() => _currentPage--)
+                                  : null,
+                              icon: const Icon(Icons.chevron_left, size: 18),
+                              label: const Text('Prev'),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF2196F3)),
+                            ),
+                            Text(
+                              'Page ${_currentPage + 1} of $totalPages',
+                              style: const TextStyle(
+                                  fontSize: 13, color: Colors.grey),
+                            ),
+                            TextButton.icon(
+                              onPressed: _currentPage < totalPages - 1
+                                  ? () => setState(() => _currentPage++)
+                                  : null,
+                              icon: const Icon(Icons.chevron_right, size: 18),
+                              label: const Text('Next'),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF2196F3)),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 );
               }),
             ),
@@ -67,8 +135,181 @@ class ProgramsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          const Text('Programs', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const Expanded(
+            child: Text('Programs',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
+          ),
+          GestureDetector(
+            onTap: () => setState(() {
+              _isGrid = !_isGrid;
+              _currentPage = 0;
+            }),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _isGrid ? Icons.view_list : Icons.grid_view,
+                color: const Color(0xFF2196F3),
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Obx(() {
+            final photoUrl =
+                (controller.userProfile['user']?['profile_photo'] ?? '')
+                    .toString();
+            final name = (controller.userProfile['profile']?['company_name'] ??
+                    controller.dashboardData['user']?['name'] ??
+                    'B')
+                .toString();
+            final initial = name.isNotEmpty ? name[0].toUpperCase() : 'B';
+            return GestureDetector(
+              onTap: () => controller.changePage(7),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFE3F2FD), shape: BoxShape.circle),
+                child: ClipOval(
+                  child: photoUrl.isNotEmpty
+                      ? Image.network(photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                              child: Text(initial,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2196F3)))))
+                      : Center(
+                          child: Text(initial,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2196F3)))),
+                ),
+              ),
+            );
+          }),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProgramCardGrid(BuildContext context, Map program) {
+    final isActive =
+        program['is_active'] == true && program['is_published'] == true;
+    final products = (program['products'] as List? ?? []);
+    return GestureDetector(
+      onTap: () => Get.to(() =>
+          ProgramFormPage(existingProgram: Map<String, dynamic>.from(program))),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2))
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(program['title'] ?? '',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isActive ? 'Active' : 'Off',
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: isActive
+                            ? const Color(0xFF4CAF50)
+                            : Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(program['description'] ?? '',
+                style: const TextStyle(color: Colors.grey, fontSize: 11),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+            if (products.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: products.take(3).map((p) {
+                  final name = p is Map
+                      ? (p['product_name'] ?? 'Product')
+                      : p.toString();
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color:
+                          const Color(0xFF2196F3).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(name,
+                        style: const TextStyle(
+                            fontSize: 9, color: Color(0xFF2196F3))),
+                  );
+                }).toList(),
+              ),
+            ],
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(children: [
+                  const Icon(Icons.card_giftcard,
+                      size: 12, color: Color(0xFF2196F3)),
+                  const SizedBox(width: 2),
+                  Text(
+                    program['incentive_amount'] != null
+                        ? 'Rs ${program['incentive_amount']}'
+                        : '-',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF2196F3)),
+                  ),
+                ]),
+                Row(children: [
+                  const Icon(Icons.people, size: 12, color: Colors.grey),
+                  const SizedBox(width: 2),
+                  Text('${program['enrolled_count'] ?? 0}',
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.grey)),
+                ]),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

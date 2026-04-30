@@ -1,12 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Internet: required for all API calls -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
+    <!-- Camera: used only when installer opens QR scanner -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Mark camera as NOT required — app installs on devices without camera -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
+    <!-- Storage: read gallery images for KYC / profile photo upload -->
+    <!-- Android ≤ 12 (API 32) uses legacy READ_EXTERNAL_STORAGE -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <!-- Android 13+ (API 33) replaced READ_EXTERNAL_STORAGE with granular media permissions -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
+    <!-- Location: used only when installer browses available jobs / nearby shops -->
+    <!-- COARSE = network-based (~100 m) — sufficient for distance display -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- FINE = GPS (~10 m) — requested only for accurate distance, denied gracefully -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
-        android:label="solar_connect"
+        android:label="Solar Partner"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

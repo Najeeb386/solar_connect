@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:solar_partner/core/services/shopkeeper_service.dart';
 
 class ShopkeeperController extends GetxController {
@@ -23,6 +24,9 @@ class ShopkeeperController extends GetxController {
 
   final RxInt currentIndex = 0.obs;
   final RxBool isLoading = false.obs;
+  // Dashboard → Jobs detail handoff
+  final Rx<Map<String, dynamic>?> pendingJobDetail =
+      Rx<Map<String, dynamic>?>(null);
 
   @override
   void onInit() {
@@ -377,6 +381,31 @@ class ShopkeeperController extends GetxController {
       Get.snackbar('Error', 'Failed to load notifications',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.withValues(alpha: 0.8));
+    }
+  }
+
+  Future<bool> uploadPhoto(XFile image) async {
+    try {
+      final res = await _service.uploadProfilePhoto(image);
+      if (res.success) {
+        await fetchProfile();
+        Get.snackbar('Success', 'Photo updated',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.withValues(alpha: 0.8),
+            colorText: Colors.white);
+        return true;
+      }
+      Get.snackbar('Error', res.message ?? 'Failed to upload photo',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+          colorText: Colors.white);
+      return false;
+    } catch (e) {
+      Get.snackbar('Error', 'Upload failed',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+          colorText: Colors.white);
+      return false;
     }
   }
 }

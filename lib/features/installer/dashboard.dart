@@ -191,15 +191,6 @@ class InstallerDashboard extends StatelessWidget {
             ),
             Obx(
               () => _buildDrawerItem(
-                3,
-                Icons.person,
-                'My Profile',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
                 4,
                 Icons.account_balance_wallet,
                 'Wallet',
@@ -225,25 +216,34 @@ class InstallerDashboard extends StatelessWidget {
                 context,
               ),
             ),
-Obx(
-                () => _buildDrawerItem(
-                  7,
-                  Icons.qr_code,
-                  'Claim Reward',
-                  controller,
-                  context,
-                ),
+            Obx(
+              () => _buildDrawerItem(
+                7,
+                Icons.qr_code,
+                'Claim Reward',
+                controller,
+                context,
               ),
-              Obx(
-                () => _buildDrawerItem(
-                  8,
-                  Icons.history,
-                  'Claim History',
-                  controller,
-                  context,
-                ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                8,
+                Icons.history,
+                'Claim History',
+                controller,
+                context,
               ),
-              const Spacer(),
+            ),
+            const Spacer(),
+            Obx(
+              () => _buildDrawerItem(
+                3,
+                Icons.person,
+                'My Profile',
+                controller,
+                context,
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: ListTile(
@@ -878,41 +878,30 @@ class DashboardHome extends StatelessWidget {
           _buildBigCard(
             title: 'Recent Jobs',
             icon: Icons.assignment,
+            isClickable: false,
             items: recentJobs.isEmpty
-                ? [
-                    {'name': 'No recent jobs', 'location': '', 'status': ''},
-                  ]
-                : recentJobs
-                      .take(2)
-                      .map(
-                        (job) => {
-                          'name': job['title'] ?? 'Job',
-                          'location': job['location'] ?? '',
-                          'status': job['status'] ?? '',
-                        },
-                      )
-                      .toList()
-                      .cast<Map<String, dynamic>>(),
+                ? [{'name': 'No recent jobs', 'location': '', 'status': '', 'id': null}]
+                : recentJobs.take(2).map((job) => {
+                      'name': job['title'] ?? 'Job',
+                      'location': job['city'] ?? job['location'] ?? '',
+                      'status': job['status'] ?? '',
+                      'id': job['id'],
+                    }).toList().cast<Map<String, dynamic>>(),
           ),
           const SizedBox(height: 16),
           _buildBigCard(
             title: 'Available Jobs',
             icon: Icons.work,
+            isClickable: true,
+            onHeaderTap: () => controller.changePage(1),
             items: availableJobs.isEmpty
-                ? [
-                    {'name': 'No available jobs', 'location': '', 'status': ''},
-                  ]
-                : availableJobs
-                      .take(2)
-                      .map(
-                        (job) => {
-                          'name': job['title'] ?? 'Job',
-                          'location': job['location'] ?? '',
-                          'status': 'View Details',
-                        },
-                      )
-                      .toList()
-                      .cast<Map<String, dynamic>>(),
+                ? [{'name': 'No available jobs', 'location': '', 'status': '', 'id': null}]
+                : availableJobs.take(3).map((job) => {
+                      'name': job['title'] ?? 'Job',
+                      'location': job['city'] ?? job['location'] ?? '',
+                      'status': 'View Details',
+                      'id': job['id'],
+                    }).toList().cast<Map<String, dynamic>>(),
           ),
         ],
       ),
@@ -923,6 +912,8 @@ class DashboardHome extends StatelessWidget {
     required String title,
     required IconData icon,
     required List<Map<String, dynamic>> items,
+    bool isClickable = false,
+    VoidCallback? onHeaderTap,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -940,87 +931,102 @@ class DashboardHome extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+          GestureDetector(
+            onTap: onHeaderTap,
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: const Color(0xFFFF8F00), size: 20),
                 ),
-                child: Icon(icon, color: const Color(0xFFFF8F00), size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF8F00),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['name']!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          item['location']!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      item['status']!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFFFF8F00),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                if (isClickable)
+                  const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFFF8F00)),
+              ],
             ),
           ),
+          const SizedBox(height: 16),
+          ...items.map((item) {
+            final isEmpty = item['id'] == null && (item['status'] == '' || item['name'] == 'No available jobs' || item['name'] == 'No recent jobs');
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: isClickable && !isEmpty
+                    ? () => Get.find<InstallerController>().changePage(1)
+                    : null,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isClickable && !isEmpty
+                            ? const Color(0xFFFF8F00)
+                            : Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['name']!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          if ((item['location'] as String).isNotEmpty)
+                            Text(
+                              item['location']!,
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if ((item['status'] as String).isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isClickable && !isEmpty
+                              ? const Color(0xFFFF8F00).withValues(alpha: 0.15)
+                              : Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          item['status']!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isClickable && !isEmpty
+                                ? const Color(0xFFFF8F00)
+                                : Colors.grey,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
