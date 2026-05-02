@@ -75,6 +75,7 @@ class BrandDashboard extends StatelessWidget {
                 final email = controller.dashboardData['user']?['email'] ?? '';
                 final photoUrl = (controller.userProfile['user']?['profile_photo'] ?? '').toString();
                 final initial = brandName.isNotEmpty ? brandName[0].toUpperCase() : 'B';
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -114,35 +115,23 @@ class BrandDashboard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Obx(() {
-                    final brandName = controller.userProfile['profile']?['company_name']
-                        ?? controller.dashboardData['brand_name']
-                        ?? controller.dashboardData['user']?['name']
-                        ?? 'Brand';
-                    final email = controller.dashboardData['user']?['email'] ?? '';
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          brandName,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          email,
-                          style: const TextStyle(fontSize: 14, color: Colors.white70),
-                        ),
-                      ],
-                    );
-                  }),
-                ],
-              ),
+                    const SizedBox(height: 16),
+                    Text(
+                      brandName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      email,
+                      style: const TextStyle(fontSize: 14, color: Colors.white70),
+                    ),
+                  ],
+                );
+              }),
             ),
             const SizedBox(height: 10),
             Obx(
