@@ -13,6 +13,9 @@ class ClaimsPage extends StatefulWidget {
 class _ClaimsPageState extends State<ClaimsPage> {
   final BrandController controller = Get.find<BrandController>();
   String _selectedFilter = 'All';
+  bool _isGrid = false;
+  int _currentPage = 0;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
@@ -57,14 +60,76 @@ class _ClaimsPageState extends State<ClaimsPage> {
           ),
           const SizedBox(width: 16),
           const Expanded(
-            child: Text('Claims', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+            child: Text('Claims',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
           ),
           Obx(() => controller.claimsLoading.value
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2196F3)))
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Color(0xFF2196F3)))
               : IconButton(
                   icon: const Icon(Icons.refresh, color: Color(0xFF2196F3)),
                   onPressed: () => controller.fetchProductClaims(),
                 )),
+          GestureDetector(
+            onTap: () => setState(() {
+              _isGrid = !_isGrid;
+              _currentPage = 0;
+            }),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _isGrid ? Icons.view_list : Icons.grid_view,
+                color: const Color(0xFF2196F3),
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Obx(() {
+            final photoUrl =
+                (controller.userProfile['user']?['profile_photo'] ?? '')
+                    .toString();
+            final name = (controller.userProfile['profile']?['company_name'] ??
+                    controller.dashboardData['user']?['name'] ??
+                    'B')
+                .toString();
+            final initial = name.isNotEmpty ? name[0].toUpperCase() : 'B';
+            return GestureDetector(
+              onTap: () => controller.changePage(7),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFE3F2FD), shape: BoxShape.circle),
+                child: ClipOval(
+                  child: photoUrl.isNotEmpty
+                      ? Image.network(photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                              child: Text(initial,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2196F3)))))
+                      : Center(
+                          child: Text(initial,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2196F3)))),
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -132,7 +197,10 @@ class _ClaimsPageState extends State<ClaimsPage> {
                 label: Text(filter),
                 selected: isSelected,
                 onSelected: (_) {
-                  setState(() => _selectedFilter = filter);
+                  setState(() {
+                    _selectedFilter = filter;
+                    _currentPage = 0;
+                  });
                   if (filter == 'All') {
                     controller.fetchProductClaims();
                   } else {
@@ -156,7 +224,8 @@ class _ClaimsPageState extends State<ClaimsPage> {
   Widget _buildClaimsList() {
     return Obx(() {
       if (controller.claimsLoading.value && controller.productClaims.isEmpty) {
-        return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+        return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF2196F3)));
       }
       if (controller.productClaims.isEmpty) {
         return Center(
@@ -166,28 +235,216 @@ class _ClaimsPageState extends State<ClaimsPage> {
               Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                _selectedFilter == 'All' ? 'No claims yet' : 'No $_selectedFilter claims',
+                _selectedFilter == 'All'
+                    ? 'No claims yet'
+                    : 'No $_selectedFilter claims',
                 style: const TextStyle(color: Colors.grey, fontSize: 16),
               ),
             ],
           ),
         );
       }
-      return RefreshIndicator(
-        onRefresh: () async {
-          final status = _selectedFilter == 'All' ? null : _selectedFilter.toLowerCase();
-          await controller.fetchProductClaims(status: status);
-        },
-        child: ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: controller.productClaims.length,
-          itemBuilder: (context, index) {
-            final claim = controller.productClaims[index] as Map;
-            return _buildClaimCard(context, claim);
-          },
-        ),
+
+      final all = controller.productClaims.cast<Map>().toList();
+      final totalPages = (all.length / _pageSize).ceil();
+      final start = _currentPage * _pageSize;
+      final end = (start + _pageSize).clamp(0, all.length);
+      final paged = all.sublist(start, end);
+      final showPagination = all.length > _pageSize;
+
+      return Column(
+        children: [
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                final status = _selectedFilter == 'All'
+                    ? null
+                    : _selectedFilter.toLowerCase();
+                await controller.fetchProductClaims(status: status);
+              },
+              child: _isGrid
+                  ? GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.8,
+                      ),
+                      itemCount: paged.length,
+                      itemBuilder: (ctx, i) => _buildClaimCardGrid(paged[i]),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: paged.length,
+                      itemBuilder: (ctx, i) =>
+                          _buildClaimCard(ctx, paged[i]),
+                    ),
+            ),
+          ),
+          if (showPagination)
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _currentPage > 0
+                        ? () => setState(() => _currentPage--)
+                        : null,
+                    icon: const Icon(Icons.chevron_left, size: 18),
+                    label: const Text('Prev'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF2196F3)),
+                  ),
+                  Text('Page ${_currentPage + 1} of $totalPages',
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.grey)),
+                  TextButton.icon(
+                    onPressed: _currentPage < totalPages - 1
+                        ? () => setState(() => _currentPage++)
+                        : null,
+                    icon: const Icon(Icons.chevron_right, size: 18),
+                    label: const Text('Next'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF2196F3)),
+                  ),
+                ],
+              ),
+            ),
+        ],
       );
     });
+  }
+
+  Widget _buildClaimCardGrid(Map claim) {
+    final installer = claim['installer'] as Map? ?? {};
+    final installerUser = installer['user'] as Map? ?? {};
+    final installerName = installerUser['name']?.toString() ??
+        claim['installer_name']?.toString() ??
+        'Unknown';
+    final program = claim['program'] as Map? ?? {};
+    final programTitle =
+        program['title']?.toString() ?? claim['program_title']?.toString() ?? '';
+    final product = claim['product'] as Map? ?? {};
+    final productName =
+        product['product_name']?.toString() ?? claim['product_name']?.toString() ?? '';
+    final amount = claim['incentive_amount']?.toString() ??
+        claim['amount']?.toString() ??
+        '0';
+    final status = (claim['status']?.toString() ?? 'pending');
+    final statusDisplay = status[0].toUpperCase() + status.substring(1);
+
+    Color statusColor;
+    switch (status) {
+      case 'approved':
+        statusColor = const Color(0xFF4CAF50);
+        break;
+      case 'rejected':
+        statusColor = Colors.red;
+        break;
+      default:
+        statusColor = const Color(0xFFFF9800);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Center(
+              child: Text(statusDisplay,
+                  style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(installerName,
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(programTitle,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          if (productName.isNotEmpty)
+            Text(productName,
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+          const Spacer(),
+          Text('Rs $amount',
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2196F3))),
+          if (status == 'pending') ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _showRejectDialog(
+                      Get.context!, claim['id'] as int),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.red),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Center(
+                        child: Text('Reject',
+                            style:
+                                TextStyle(fontSize: 10, color: Colors.red))),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () =>
+                      controller.approveProductClaim(claim['id'] as int),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Center(
+                        child: Text('Approve',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.white))),
+                  ),
+                ),
+              ),
+            ]),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildClaimCard(BuildContext context, Map claim) {

@@ -508,7 +508,8 @@ class _MyProfilePageState extends State<MyProfilePage>
   // ── KYC TAB ─────────────────────────────────────────────────────────────────
 
   Widget _buildKycTab() {
-    final status = _kycData['kyc_status']?.toString() ?? 'not_submitted';
+    final status = _kycData['kyc_status']?.toString() ??
+        _controller.dashboardData['kyc_status']?.toString() ?? 'not_submitted';
     final cnicNumber = _kycData['cnic_number']?.toString() ?? '';
 
     // Show masked CNIC: first 5 digits visible, rest as *

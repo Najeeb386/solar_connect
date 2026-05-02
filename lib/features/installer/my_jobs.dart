@@ -286,16 +286,15 @@ class _MyJobsPageState extends State<MyJobsPage>
             final budget = job['budget'];
             final amountText = budget != null ? 'Rs $budget' : 'N/A';
             final assignmentId = assignment['id'] ?? job['id'];
-            final isCompleted =
-                status.toString().toLowerCase() == 'completed';
-            final isActive = status.toString().toLowerCase() == 'active' ||
-                status.toString().toLowerCase() == 'in_progress' ||
-                status.toString().toLowerCase() == 'in progress' ||
-                status.toString().toLowerCase() == 'started';
-            final isPending = !isCompleted && !isActive;
+            // job ID for API calls (server routes use job ID, not assignment ID)
+            final jobActualId = (assignment['job'] as Map?)?['id']
+                ?? assignment['job_id']
+                ?? job['id']
+                ?? assignmentId;
             final assignStatus = status.toString().toLowerCase();
-            final paymentSent = job['payment_released_at'] != null;
-            final paymentDone = job['payment_received_at'] != null;
+            // payment flags live on the assignment record, not the job
+            final paymentSent = assignment['payment_released_at'] != null;
+            final paymentDone = assignment['payment_received_at'] != null;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -374,31 +373,33 @@ class _MyJobsPageState extends State<MyJobsPage>
                       ),
                     ],
                   ),
-                  if (!paymentDone) ...[
-                    const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                  if (paymentDone)
+                    _jobStatusLabel('✅ Payment Confirmed', const Color(0xFF4CAF50))
+                  else ...[
                     if (assignStatus == 'pending')
-                      _jobStatusLabel('Awaiting Shopkeeper Acceptance', Colors.grey),
+                      _jobStatusLabel('⏳ Waiting for Hire', Colors.grey),
                     if (assignStatus == 'accepted')
                       _jobActionButton(
-                        'Start Job',
+                        'Start Work',
                         const Color(0xFF2196F3),
-                        () => controller.startJob(int.parse(assignmentId.toString())),
+                        () => controller.startJob(int.parse(jobActualId.toString())),
                       ),
                     if (assignStatus == 'in_progress')
                       _jobActionButton(
-                        'Mark as Completed',
+                        'Mark Complete',
                         const Color(0xFFFF8F00),
-                        () => _showCompleteDialog(context, int.parse(assignmentId.toString())),
+                        () => _showCompleteDialog(context, int.parse(jobActualId.toString())),
                       ),
                     if (assignStatus == 'completed' && !paymentSent)
-                      _jobStatusLabel('Awaiting Payment from Shopkeeper', const Color(0xFFFF9800)),
+                      _jobStatusLabel('⏳ Awaiting Payment', const Color(0xFFFF9800)),
                     if (paymentSent && !paymentDone)
                       _jobActionButton(
-                        'Mark Payment Received',
+                        'Mark Received',
                         const Color(0xFF4CAF50),
                         () => _showPaymentReceivedDialog(
                           context,
-                          int.parse((job['job_id'] ?? job['id']).toString()),
+                          int.parse(jobActualId.toString()),
                         ),
                       ),
                   ],

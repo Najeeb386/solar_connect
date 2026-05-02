@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'controllers/shopkeeper_controller.dart';
 import 'location_picker_screen.dart';
@@ -221,6 +222,89 @@ class _ShopkeeperProfilePageState extends State<ShopkeeperProfilePage> {
     }
   }
 
+  // ─── Photo upload ────────────────────────────────────────────────────────
+
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF9C27B0)),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFF9C27B0)),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final image = await picker.pickImage(source: source, imageQuality: 80);
+    if (image != null) controller.uploadPhoto(image);
+  }
+
+  Widget _buildPhotoAvatar(Map user, String initial) {
+    final photoUrl = user['profile_photo']?.toString() ?? '';
+    return GestureDetector(
+      onTap: _pickPhoto,
+      child: Stack(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: photoUrl.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      photoUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(initial,
+                            style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF9C27B0))),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Text(initial,
+                        style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF9C27B0)))),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: const Color(0xFF9C27B0),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(Icons.camera_alt, size: 12, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─── Build ───────────────────────────────────────────────────────────────
 
   @override
@@ -317,19 +401,7 @@ class _ShopkeeperProfilePageState extends State<ShopkeeperProfilePage> {
         ),
         child: Column(
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                  color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16)),
-              child: Center(
-                  child: Text(initial,
-                      style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF9C27B0)))),
-            ),
+            _buildPhotoAvatar(user, initial),
             const SizedBox(height: 12),
             Text(shopName,
                 style: const TextStyle(

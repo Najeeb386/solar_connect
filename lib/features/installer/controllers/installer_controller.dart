@@ -25,6 +25,7 @@ class InstallerController extends GetxController {
   // Wallet
   final RxMap walletData = {}.obs;
   final RxList transactions = [].obs;
+  final RxList pendingWithdrawals = [].obs;
   final RxBool walletLoading = false.obs;
 
   // Payment Methods
@@ -40,12 +41,20 @@ class InstallerController extends GetxController {
 
   // Product Claims
   final RxList productClaims = [].obs;
+  final RxList claimHistory = [].obs;
   final RxList enrolledPrograms = [].obs;
   final RxBool claimsLoading = false.obs;
+  final RxBool claimHistoryLoading = false.obs;
+  final RxBool claimHistoryLoadingMore = false.obs;
+  final RxInt  claimHistoryPage     = 1.obs;
+  final RxInt  claimHistoryLastPage = 1.obs;
+  final RxInt  claimHistoryTotal    = 0.obs;
+  String?      _claimHistoryStatus;
 
   // Notifications
   final RxList notifications = [].obs;
   final RxBool notificationsLoading = false.obs;
+  final RxInt unreadCount = 0.obs;
 
   // Top Programs for Slider
   final RxList topPrograms = [].obs;
@@ -441,9 +450,10 @@ class InstallerController extends GetxController {
       final res = await _service.getNotifications();
       notificationsLoading.value = false;
       if (res.success && res.data != null) {
-        final raw = res.data;
-        final list = (raw is Map ? (raw['data'] ?? []) : raw) as List?;
-        if (list != null) notifications.value = list;
+        notifications.value = res.data as List? ?? [];
+        if (res.pagination != null) {
+          unreadCount.value = (res.pagination!['unread_count'] ?? 0) as int;
+        }
       }
     } catch (e) {
       notificationsLoading.value = false;
@@ -453,32 +463,45 @@ class InstallerController extends GetxController {
   Future<void> fetchWallet() async {
     try {
       walletLoading.value = true;
-      final res = await _service.getWallet();
+      // Run wallet summary + transactions in parallel
+      final results = await Future.wait([
+        _service.getWallet(),
+        _service.getWalletTransactions(),
+      ]);
       walletLoading.value = false;
-      if (res.success && res.data != null) {
-        final data = res.data as Map<String, dynamic>;
-        // Check all possible balance fields
-        final balanceVal =
-            data['wallet_balance'] ??
-            data['current_balance'] ??
-            data['balance'] ??
-            0;
+
+      final walletRes = results[0];
+      final txRes     = results[1];
+
+      if (walletRes.success && walletRes.data != null) {
+        final data = walletRes.data as Map<String, dynamic>;
+        // API returns 'current_balance'
+        final balanceVal = data['current_balance'] ?? data['balance'] ?? 0;
         walletData.value = {
-          'balance': balanceVal,
+          'balance':        balanceVal,
           'total_credited': data['total_credited'] ?? 0,
-          'total_debited': data['total_debited'] ?? 0,
+          'total_debited':  data['total_debited']  ?? 0,
+          'pending_credits': data['pending_credits'] ?? 0,
         };
-        final txList =
-            data['recent_transactions'] ?? data['transactions'] ?? [];
-        if (txList is List) transactions.value = txList;
+        // pending_withdrawals: each has id, total_amount, status, brands[]
+        final pwList = data['pending_withdrawals'] ?? [];
+        if (pwList is List) pendingWithdrawals.value = pwList;
       } else {
-        // Fallback to dashboard wallet balance if wallet API fails
         _loadWalletFromDashboard();
       }
+
+      // Transactions come from separate endpoint — data is paginated list
+      if (txRes.success && txRes.data != null) {
+        final raw = txRes.data;
+        final list = raw is List
+            ? raw
+            : (raw is Map ? (raw['data'] ?? raw['transactions'] ?? []) : []);
+        if (list is List) transactions.value = list;
+      }
+
       await fetchPaymentMethods();
     } catch (e) {
       walletLoading.value = false;
-      // Fallback to dashboard wallet balance on exception
       _loadWalletFromDashboard();
       await fetchPaymentMethods();
     }
@@ -503,12 +526,18 @@ class InstallerController extends GetxController {
       final res = await _service.withdraw(paymentMethodId, amount);
       if (res.success) {
         await fetchWallet();
+        final brandsCount = res.data is Map
+          ? (res.data['brands_count'] ?? 0)
+          : 0;
         Get.snackbar(
-          'Withdrawn',
-          res.message,
+          'Withdrawal Requested',
+          brandsCount > 0
+            ? 'Request sent to $brandsCount brand${brandsCount > 1 ? "s" : ""}. Awaiting confirmation.'
+            : res.message,
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          backgroundColor: Colors.green.withValues(alpha: 0.9),
           colorText: Colors.white,
+          duration: const Duration(seconds: 4),
         );
         return true;
       }
@@ -885,6 +914,63 @@ class InstallerController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withValues(alpha: 0.8),
       );
+    }
+  }
+
+  /// [status] filter. [refresh]=true resets to page 1. [loadMore]=true appends next page.
+  Future<void> fetchClaimHistory({
+    String? status,
+    bool refresh = true,
+    bool loadMore = false,
+  }) async {
+    if (loadMore) {
+      if (claimHistoryPage.value >= claimHistoryLastPage.value) return;
+      if (claimHistoryLoadingMore.value) return;
+    }
+
+    try {
+      if (refresh) {
+        _claimHistoryStatus = status;
+        claimHistoryPage.value = 1;
+        claimHistoryLoading.value = true;
+      } else if (loadMore) {
+        claimHistoryLoadingMore.value = true;
+      }
+
+      final page = loadMore ? claimHistoryPage.value + 1 : 1;
+      final res = await _service.getClaimHistory(
+        status: _claimHistoryStatus,
+        page: page,
+      );
+
+      if (refresh) claimHistoryLoading.value = false;
+      if (loadMore) claimHistoryLoadingMore.value = false;
+
+      if (res.success && res.data != null) {
+        final raw  = res.data as Map;
+        final list = (raw['claims'] as List?) ?? [];
+        final pg   = raw['pagination'] as Map? ?? {};
+
+        claimHistoryTotal.value    = int.tryParse(pg['total']?.toString() ?? '0') ?? 0;
+        claimHistoryLastPage.value = int.tryParse(pg['last_page']?.toString() ?? '1') ?? 1;
+        claimHistoryPage.value     = int.tryParse(pg['current_page']?.toString() ?? '1') ?? 1;
+
+        if (refresh) {
+          claimHistory.value = list;
+        } else {
+          claimHistory.addAll(list);
+        }
+      } else {
+        Get.snackbar('Error', res.message ?? 'Failed to load claim history',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.8));
+      }
+    } catch (e) {
+      claimHistoryLoading.value      = false;
+      claimHistoryLoadingMore.value  = false;
+      Get.snackbar('Error', 'Connection failed',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8));
     }
   }
 

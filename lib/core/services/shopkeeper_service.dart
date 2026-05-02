@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../network/api_client.dart';
 
 class ShopkeeperService {
@@ -178,6 +179,23 @@ class ShopkeeperService {
       final response = await _client.get(
         '/shopkeeper/notifications',
         queryParams: {'page': page},
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> uploadProfilePhoto(XFile image) async {
+    try {
+      final bytes = await image.readAsBytes();
+      final filename = image.name.isNotEmpty ? image.name : 'photo.jpg';
+      final formData = FormData.fromMap({
+        'profile_photo': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+      final response = await _client.postFormData(
+        '/shopkeeper/profile/upload-photo',
+        formData,
       );
       return ApiResponse.fromJson(response.data);
     } on DioException catch (e) {

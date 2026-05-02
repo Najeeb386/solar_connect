@@ -344,4 +344,45 @@ class BrandService {
       return ApiResponse.fromDioError(e);
     }
   }
+
+  Future<ApiResponse> getWithdrawals({int page = 1}) async {
+    try {
+      final response = await _client.get('/brand/withdrawals', queryParams: {'page': page});
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> markWithdrawalPaid(int itemId) async {
+    try {
+      final response = await _client.post('/brand/withdrawals/$itemId/mark-paid');
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> getTransactions({int page = 1, String? status}) async {
+    try {
+      final params = <String, dynamic>{'page': page};
+      if (status != null && status != 'all') params['status'] = status;
+      final response = await _client.get('/brand/transactions', queryParams: params);
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> uploadPhoto(XFile image) async {
+    try {
+      final mp = await _toMultipart(image);
+      if (mp == null) return ApiResponse(success: false, message: 'Failed to read image', code: 0);
+      final fd = FormData.fromMap({'profile_photo': mp});
+      final response = await _client.postFormData('/brand/profile/upload-photo', fd);
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
 }

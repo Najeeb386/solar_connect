@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/widgets/storage_image.dart';
 import 'controllers/brand_controller.dart';
 
@@ -222,6 +226,232 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ),
     );
   }
+
+  // ─── QR Code sheet ───────────────────────────────────────────────────────
+
+  String _buildQRData(Map<String, dynamic> product) {
+    final profile = controller.userProfile;
+    final brandName = profile['company_name'] ?? profile['name'] ?? '';
+    final brandId = profile['user_id'] ?? profile['id'] ?? 0;
+    return jsonEncode({
+      'app': 'solar',
+      'pid': product['id'],
+      'pname': product['product_name'] ?? '',
+      'series': product['product_series'] ?? '',
+      'bid': brandId,
+      'bname': brandName,
+    });
+  }
+
+  void _showQRSheet(Map<String, dynamic> product) {
+    final qrData = _buildQRData(product);
+    final qrKey = GlobalKey();
+
+    Get.bottomSheet(
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      StatefulBuilder(builder: (ctx, setSheet) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24, right: 24, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 28,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2)),
+                ),
+
+                Row(
+                  children: [
+                    Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: _brandColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.qr_code_2,
+                        color: _brandColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('Product QR Code',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(Icons.close),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // QR Code
+                RepaintBoundary(
+                  key: qrKey,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        QrImageView(
+                          data: qrData,
+                          version: QrVersions.auto,
+                          size: 220,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Color(0xFF1565C0),
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          product['product_name'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        if ((product['product_series'] ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            product['product_series'] ?? '',
+                            style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade500),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Product info chip row
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _infoBadge(Icons.tag, 'ID: ${product['id']}'),
+                    if ((product['product_name'] ?? '').isNotEmpty)
+                      _infoBadge(Icons.inventory_2_outlined,
+                        product['product_name']),
+                    if ((product['product_series'] ?? '').isNotEmpty)
+                      _infoBadge(Icons.label_outline,
+                        product['product_series']),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Info note
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _brandColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, color: _brandColor, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Print or display this QR code on your product packaging. '
+                          'Installers scan it to automatically identify the product and submit a reward claim.',
+                          style: TextStyle(fontSize: 12, color: _brandColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Save as image button
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _saveQRImage(qrKey, product),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _brandColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.download, color: Colors.white, size: 18),
+                    label: const Text('Save QR Image',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Future<void> _saveQRImage(GlobalKey key, Map<String, dynamic> product) async {
+    try {
+      final boundary = key.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      // Bytes captured — in a real device you'd save via path_provider
+      // For now notify user to screenshot
+      Get.snackbar(
+        'QR Ready',
+        'Screenshot this QR code or print it for your product.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    } catch (_) {
+      Get.snackbar('Tip', 'Take a screenshot to save this QR code.',
+        snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Widget _infoBadge(IconData icon, String label) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: _brandColor.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: _brandColor.withValues(alpha: 0.2)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: _brandColor),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 11, color: _brandColor)),
+      ],
+    ),
+  );
 
   // ─── Delete confirm ───────────────────────────────────────────────────────
 
@@ -444,7 +674,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   Widget _buildGridView(List filtered) {
     final cols = _viewMode == _ViewMode.grid4 ? 4 : 2;
-    final ratio = cols == 4 ? 0.65 : 0.72;
+    final ratio = cols == 4 ? 0.58 : 0.68;
 
     return GridView.builder(
       padding: const EdgeInsets.all(12),
@@ -507,6 +737,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ],
                   const Spacer(),
                   Row(children: [
+                    Expanded(
+                      child: _smallBtn(
+                        icon: Icons.qr_code_2,
+                        color: Colors.purple,
+                        onTap: () => _showQRSheet(product),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: _smallBtn(
                         icon: Icons.edit_outlined,
@@ -617,6 +855,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
           const SizedBox(width: 8),
           // Actions column
           Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            _iconAction(
+                icon: Icons.qr_code_2,
+                color: Colors.purple,
+                onTap: () => _showQRSheet(product)),
+            const SizedBox(height: 6),
             _iconAction(
                 icon: Icons.edit_outlined,
                 color: _brandColor,
