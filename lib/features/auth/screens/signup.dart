@@ -34,24 +34,16 @@ class SignUpPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFFFFF3E0),
-                    ),
-                    child: const Icon(
-                      Icons.wb_sunny_rounded,
-                      size: 40,
-                      color: Color(0xFFFF8F00),
-                    ),
+                  child: Image.asset(
+                    'assets/icons/app_icon.png',
+                    width: 120,
+                    height: 120,
                   ),
                 ),
                 const SizedBox(height: 20),
                 const Center(
                   child: Text(
-                    "Solar Connect",
+                    "Solar Partner",
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),

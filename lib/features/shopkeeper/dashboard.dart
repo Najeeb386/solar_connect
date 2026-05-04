@@ -78,25 +78,45 @@ class ShopkeeperDashboard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          initial,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF9C27B0),
-                          ),
+                    GestureDetector(
+                      onTap: () {
+                        controller.changePage(4);
+                        Navigator.pop(Get.context!);
+                      },
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: ClipOval(
+                          child: () {
+                            final photoUrl = (controller.userProfile['user']
+                                        ?['profile_photo'] ??
+                                    '')
+                                .toString();
+                            if (photoUrl.isNotEmpty) {
+                              return Image.network(photoUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Center(
+                                      child: Text(initial,
+                                          style: const TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF9C27B0)))));
+                            }
+                            return Center(
+                                child: Text(initial,
+                                    style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF9C27B0))));
+                          }(),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
                       shopName,
                       style: const TextStyle(
@@ -268,24 +288,76 @@ class ShopkeeperDashboardHome extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3E5F5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                initial,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF9C27B0),
+          Obx(() {
+            final unread = controller.unreadNotifications.value;
+            return GestureDetector(
+              onTap: () => controller.changePage(3),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.notifications_outlined,
+                        color: Color(0xFF9C27B0)),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: const BoxDecoration(
+                            color: Colors.red, shape: BoxShape.circle),
+                        child: Center(
+                          child: Text('$unread',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(width: 8),
+          Obx(() {
+            final photoUrl =
+                (controller.userProfile['user']?['profile_photo'] ?? '')
+                    .toString();
+            return GestureDetector(
+              onTap: () => controller.changePage(4),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFF3E5F5), shape: BoxShape.circle),
+                child: ClipOval(
+                  child: photoUrl.isNotEmpty
+                      ? Image.network(photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                              child: Text(initial,
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF9C27B0)))))
+                      : Center(
+                          child: Text(initial,
+                              style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF9C27B0)))),
                 ),
               ),
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );
@@ -409,14 +481,14 @@ class ShopkeeperDashboardHome extends StatelessWidget {
                 ]),
               ))
             else
-              ...recentJobs.take(3).map((job) => _buildJobItem(job as Map)),
+              ...recentJobs.take(3).map((job) => _buildJobItem(job as Map, controller)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildJobItem(Map job) {
+  Widget _buildJobItem(Map job, ShopkeeperController controller) {
     final status = job['status']?.toString() ?? '';
     Color statusColor;
     switch (status) {
@@ -431,50 +503,65 @@ class ShopkeeperDashboardHome extends StatelessWidget {
         statusColor = const Color(0xFFFF9800);
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: () {
+        // Navigate to jobs page and open this job's detail
+        controller.changePage(1);
+        // Store selected job for JobsPage to open
+        controller.pendingJobDetail.value =
+            Map<String, dynamic>.from(job as Map);
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child:
+                  const Icon(Icons.work, color: Color(0xFF9C27B0), size: 20),
             ),
-            child: const Icon(Icons.work, color: Color(0xFF9C27B0), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(job['title']?.toString() ?? 'Job',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w500, fontSize: 13)),
-                  Text('PKR ${job['budget'] ?? 'N/A'}',
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.grey)),
-                ]),
-          ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(job['title']?.toString() ?? 'Job',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500, fontSize: 13)),
+                    Text('PKR ${job['budget'] ?? 'N/A'}',
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.grey)),
+                  ]),
             ),
-            child: Text(
-              status.isEmpty
-                  ? 'N/A'
-                  : status[0].toUpperCase() + status.substring(1),
-              style: TextStyle(
-                  fontSize: 11,
-                  color: statusColor,
-                  fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
+            Row(children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  status.isEmpty
+                      ? 'N/A'
+                      : status[0].toUpperCase() + status.substring(1),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: statusColor,
+                      fontWeight: FontWeight.w500),
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.arrow_forward_ios,
+                  size: 12, color: Colors.grey),
+            ]),
+          ],
+        ),
       ),
     );
   }

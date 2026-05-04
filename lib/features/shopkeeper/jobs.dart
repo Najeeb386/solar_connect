@@ -16,6 +16,9 @@ class _JobsPageState extends State<JobsPage> {
   String _selectedFilter = 'All';
   bool _showJobDetails = false;
   Map<String, dynamic>? _selectedJob;
+  bool _isGrid = false;
+  int _currentPage = 0;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
@@ -23,6 +26,17 @@ class _JobsPageState extends State<JobsPage> {
     if (controller.jobs.isEmpty) {
       controller.fetchJobs(refresh: true);
     }
+    // Open job detail if navigated from dashboard
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pending = controller.pendingJobDetail.value;
+      if (pending != null) {
+        setState(() {
+          _selectedJob = pending;
+          _showJobDetails = true;
+        });
+        controller.pendingJobDetail.value = null;
+      }
+    });
   }
 
   @override
@@ -61,11 +75,55 @@ class _JobsPageState extends State<JobsPage> {
                   return matchesSearch && matchesFilter;
                 }).toList();
 
-                return RefreshIndicator(
-                  color: const Color(0xFF9C27B0),
-                  onRefresh: () => controller.fetchJobs(refresh: true),
-                  child: _buildJobsList(filteredJobs),
-                );
+                final totalPages =
+                    (filteredJobs.length / _pageSize).ceil().clamp(1, 999);
+                final start = _currentPage * _pageSize;
+                final end = (start + _pageSize).clamp(0, filteredJobs.length);
+                final paged = filteredJobs.sublist(start, end);
+
+                return Column(children: [
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: const Color(0xFF9C27B0),
+                      onRefresh: () => controller.fetchJobs(refresh: true),
+                      child: _isGrid
+                          ? _buildJobsGrid(paged)
+                          : _buildJobsList(paged),
+                    ),
+                  ),
+                  if (filteredJobs.length > _pageSize)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      color: Colors.white,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _currentPage > 0
+                                ? () => setState(() => _currentPage--)
+                                : null,
+                            icon: const Icon(Icons.chevron_left, size: 18),
+                            label: const Text('Prev'),
+                            style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF9C27B0)),
+                          ),
+                          Text('Page ${_currentPage + 1} of $totalPages',
+                              style: const TextStyle(
+                                  fontSize: 13, color: Colors.grey)),
+                          TextButton.icon(
+                            onPressed: _currentPage < totalPages - 1
+                                ? () => setState(() => _currentPage++)
+                                : null,
+                            icon: const Icon(Icons.chevron_right, size: 18),
+                            label: const Text('Next'),
+                            style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF9C27B0)),
+                          ),
+                        ],
+                      ),
+                    ),
+                ]);
               }),
             ),
           ],
@@ -98,7 +156,7 @@ class _JobsPageState extends State<JobsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'My Jobs',
+                  'All Jobs',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -112,6 +170,26 @@ class _JobsPageState extends State<JobsPage> {
               ],
             ),
           ),
+          GestureDetector(
+            onTap: () => setState(() {
+              _isGrid = !_isGrid;
+              _currentPage = 0;
+            }),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _isGrid ? Icons.view_list : Icons.grid_view,
+                color: const Color(0xFF9C27B0),
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           ElevatedButton.icon(
             onPressed: () => Get.to(() => const CreateJobPage()),
             style: ElevatedButton.styleFrom(
@@ -137,7 +215,8 @@ class _JobsPageState extends State<JobsPage> {
         children: [
           Expanded(
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              onChanged: (value) =>
+                  setState(() { _searchQuery = value; _currentPage = 0; }),
               decoration: InputDecoration(
                 hintText: 'Search jobs...',
                 prefixIcon:
@@ -163,7 +242,7 @@ class _JobsPageState extends State<JobsPage> {
                   const Icon(Icons.filter_list, color: Color(0xFF9C27B0)),
             ),
             onSelected: (value) =>
-                setState(() => _selectedFilter = value),
+                setState(() { _selectedFilter = value; _currentPage = 0; }),
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'All', child: Text('All')),
               const PopupMenuItem(value: 'open', child: Text('Open')),
@@ -182,38 +261,29 @@ class _JobsPageState extends State<JobsPage> {
 
   Widget _buildJobsList(List<dynamic> jobs) {
     if (jobs.isEmpty) {
-      return ListView(
-        children: const [
-          SizedBox(height: 120),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.work_off, size: 48, color: Colors.grey),
-              SizedBox(height: 16),
-              Text('No jobs found',
-                  style: TextStyle(color: Colors.grey)),
-            ],
-          ),
-        ],
-      );
+      return ListView(children: const [
+        SizedBox(height: 120),
+        Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.work_off, size: 48, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('No jobs found', style: TextStyle(color: Colors.grey)),
+        ]),
+      ]);
     }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: jobs.length,
       itemBuilder: (context, index) {
-        final job =
-            Map<String, dynamic>.from(jobs[index] as Map);
+        final job = Map<String, dynamic>.from(jobs[index] as Map);
         final budgetRaw = job['budget'];
-        final budgetDisplay =
-            budgetRaw != null ? 'PKR $budgetRaw' : 'N/A';
+        final budgetDisplay = budgetRaw != null ? 'PKR $budgetRaw' : 'N/A';
         final createdAt = job['created_at'] ?? '';
-        final displayDate = createdAt.length >= 10
-            ? createdAt.substring(0, 10)
-            : createdAt;
-        // Backend returns skills_required, not city
-        final skillsOrDate =
-            job['skills_required']?.toString() ?? '';
+        final displayDate =
+            createdAt.length >= 10 ? createdAt.substring(0, 10) : createdAt;
+        final skillsOrDate = job['skills_required']?.toString() ?? '';
+        final applicationsCount =
+            int.tryParse(job['assignments_count']?.toString() ?? '0') ?? 0;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -223,90 +293,207 @@ class _JobsPageState extends State<JobsPage> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4))
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          job['title'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            _buildStatusBadge(job['status'] ?? ''),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                [
-                                  if (skillsOrDate.isNotEmpty)
-                                    skillsOrDate,
-                                  budgetDisplay,
-                                  if (displayDate.isNotEmpty) displayDate,
-                                ].join(' · '),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedJob = job;
-                            _showJobDetails = true;
-                          });
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF9C27B0),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                      Text(job['title'] ?? '',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        _buildStatusBadge(job['status'] ?? ''),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            [
+                              if (skillsOrDate.isNotEmpty) skillsOrDate,
+                              budgetDisplay,
+                              if (displayDate.isNotEmpty) displayDate,
+                            ].join(' · '),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        child: const Text('View'),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton(
-                        onPressed: () => _confirmDelete(job),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                      ]),
+                      if (applicationsCount > 0) ...[
+                        const SizedBox(height: 6),
+                        Row(children: [
+                          const Icon(Icons.people,
+                              size: 13, color: Color(0xFF9C27B0)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$applicationsCount applied',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF9C27B0),
+                                fontWeight: FontWeight.w500),
                           ),
-                        ),
-                        child: const Text('Delete'),
-                      ),
+                        ]),
+                      ],
                     ],
                   ),
-                ],
-              ),
+                ),
+                Column(children: [
+                  OutlinedButton(
+                    onPressed: () =>
+                        setState(() { _selectedJob = job; _showJobDetails = true; }),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF9C27B0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                    ),
+                    child: const Text('View'),
+                  ),
+                  const SizedBox(height: 4),
+                  if (applicationsCount > 0)
+                    OutlinedButton(
+                      onPressed: () =>
+                          setState(() { _selectedJob = job; _showJobDetails = true; }),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF4CAF50),
+                        side: const BorderSide(color: Color(0xFF4CAF50)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                      ),
+                      child: Text('Applied ($applicationsCount)',
+                          style: const TextStyle(fontSize: 11)),
+                    ),
+                  const SizedBox(height: 4),
+                  OutlinedButton(
+                    onPressed: () => _confirmDelete(job),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                    ),
+                    child: const Text('Delete'),
+                  ),
+                ]),
+              ]),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildJobsGrid(List<dynamic> jobs) {
+    if (jobs.isEmpty) {
+      return const Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.work_off, size: 48, color: Colors.grey),
+        SizedBox(height: 16),
+        Text('No jobs found', style: TextStyle(color: Colors.grey)),
+      ]));
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.78,
+      ),
+      itemCount: jobs.length,
+      itemBuilder: (context, index) {
+        final job = Map<String, dynamic>.from(jobs[index] as Map);
+        final budgetRaw = job['budget'];
+        final budgetDisplay = budgetRaw != null ? 'PKR $budgetRaw' : 'N/A';
+        final applicationsCount =
+            int.tryParse(job['assignments_count']?.toString() ?? '0') ?? 0;
+
+        return GestureDetector(
+          onTap: () =>
+              setState(() { _selectedJob = job; _showJobDetails = true; }),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2))
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStatusBadge(job['status'] ?? ''),
+                const SizedBox(height: 6),
+                Text(job['title'] ?? '',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.bold),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(budgetDisplay,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF9C27B0),
+                        fontWeight: FontWeight.w500)),
+                if (applicationsCount > 0) ...[
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    const Icon(Icons.people,
+                        size: 12, color: Color(0xFF4CAF50)),
+                    const SizedBox(width: 3),
+                    Text('$applicationsCount applied',
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0xFF4CAF50))),
+                  ]),
+                ],
+                const Spacer(),
+                Row(children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(
+                          () { _selectedJob = job; _showJobDetails = true; }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                            child: Text('View',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF9C27B0),
+                                    fontWeight: FontWeight.w600))),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => _confirmDelete(job),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.delete_outline,
+                          size: 14, color: Colors.red),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
           ),
         );
       },
@@ -590,18 +777,51 @@ class _JobsPageState extends State<JobsPage> {
                           ],
                         ),
                       ),
-                      if (status == 'completed' && installerId != null)
+                      if (status == 'pending' && installerId != null)
+                        TextButton(
+                          onPressed: () async {
+                            final confirmed = await Get.defaultDialog<bool>(
+                              title: 'Hire Installer',
+                              middleText: 'Hire $installerName for this job?',
+                              textConfirm: 'Hire / Approve',
+                              textCancel: 'Cancel',
+                              confirmTextColor: Colors.white,
+                              buttonColor: const Color(0xFF9C27B0),
+                              onConfirm: () => Get.back(result: true),
+                              onCancel: () => Get.back(result: false),
+                            );
+                            if (confirmed == true) {
+                              await controller.hireInstaller(
+                                int.parse(jobId.toString()),
+                                int.parse(installerId.toString()),
+                              );
+                            }
+                          },
+                          child: const Text('Hire / Approve',
+                              style: TextStyle(color: Color(0xFF9C27B0))),
+                        ),
+                      if (status == 'accepted' || status == 'in_progress')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('Work In Progress',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF2196F3))),
+                        ),
+                      if (status == 'completed' && installerId != null && assignment['payment_released_at'] == null)
                         Row(children: [
                           TextButton(
                             onPressed: () async {
                               final confirmed = await Get.defaultDialog<bool>(
-                                title: 'Release Payment',
+                                title: 'Mark as Paid',
                                 middleText:
-                                    'Release payment to $installerName?',
+                                    'Confirm you have paid $installerName outside the app?',
                                 textConfirm: 'Confirm',
                                 textCancel: 'Cancel',
                                 confirmTextColor: Colors.white,
-                                buttonColor: const Color(0xFF9C27B0),
+                                buttonColor: const Color(0xFF4CAF50),
                                 onConfirm: () => Get.back(result: true),
                                 onCancel: () => Get.back(result: false),
                               );
@@ -615,7 +835,7 @@ class _JobsPageState extends State<JobsPage> {
                                 );
                               }
                             },
-                            child: const Text('Pay',
+                            child: const Text('Mark Paid',
                                 style:
                                     TextStyle(color: Color(0xFF4CAF50))),
                           ),
@@ -657,7 +877,7 @@ class _JobsPageState extends State<JobsPage> {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'Awaiting installer confirmation',
+                        '⏳ Awaiting Confirmation from Installer',
                         style: TextStyle(fontSize: 11, color: Colors.orange[700]),
                       ),
                     ),
@@ -665,7 +885,7 @@ class _JobsPageState extends State<JobsPage> {
                     const Padding(
                       padding: EdgeInsets.only(top: 4),
                       child: Text(
-                        '✅ Payment confirmed',
+                        '✅ Payment Confirmed',
                         style: TextStyle(fontSize: 11, color: Colors.green),
                       ),
                     ),

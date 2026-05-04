@@ -2,6 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- ── Permission usage descriptions (required by Apple / App Store) ── -->
+
+	<!-- Camera: used by QR / barcode scanner (installer reward scanning) -->
+	<key>NSCameraUsageDescription</key>
+	<string>Camera is used to scan product barcodes and QR codes to submit reward claims.</string>
+
+	<!-- Location: used to show distance to available jobs and nearby shops -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is used to show the distance to available installation jobs and nearby solar shops.</string>
+
+	<!-- Photo Library (read): used to pick KYC documents and profile photo from gallery -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is needed to select your CNIC images and profile photo for upload.</string>
+
+	<!-- Photo Library (add/save): used to save generated QR code images -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Permission is needed to save generated product QR code images to your photo library.</string>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
