@@ -67,85 +67,53 @@ class BrandDashboard extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: Obx(() {
-                final brandName = controller.userProfile['profile']?['company_name']
-                    ?? controller.dashboardData['brand_name']
-                    ?? controller.dashboardData['user']?['name']
-                    ?? 'Brand';
-                final email = controller.dashboardData['user']?['email'] ?? '';
-                final photoUrl = (controller.userProfile['user']?['profile_photo'] ?? '').toString();
-                final initial = brandName.isNotEmpty ? brandName[0].toUpperCase() : 'B';
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        controller.changePage(7);
-                        Navigator.pop(Get.context!);
-                      },
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: ClipOval(
-                          child: photoUrl.isNotEmpty
-                              ? Image.network(
-                                  photoUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Center(
-                                    child: Text(initial,
-                                        style: const TextStyle(
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF2196F3))),
-                                  ),
-                                )
-                              : Center(
-                                  child: Text(initial,
-                                      style: const TextStyle(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2196F3))),
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      brandName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      email,
-                      style: const TextStyle(fontSize: 13, color: Colors.white70),
-                    ),
-                  ],
-                );
-              }),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Obx(() => _buildDrawerItem(0, Icons.dashboard, 'Dashboard', controller, context)),
-                  Obx(() => _buildDrawerItem(1, Icons.card_giftcard, 'Programs', controller, context)),
-                  Obx(() => _buildDrawerItem(2, Icons.shopping_bag, 'Products', controller, context)),
-                  Obx(() => _buildDrawerItem(3, Icons.receipt_long, 'Claims', controller, context)),
-                  Obx(() => _buildDrawerItem(4, Icons.campaign, 'Announcements', controller, context)),
-                  Obx(() => _buildDrawerItem(5, Icons.folder, 'Manuals', controller, context)),
-                  Obx(() => _buildDrawerItem(6, Icons.analytics, 'Analytics', controller, context)),
-                  Obx(() => _buildDrawerItem(7, Icons.person, 'My Profile', controller, context)),
-                  Obx(() => _buildDrawerItem(8, Icons.money_off, 'Withdrawals', controller, context)),
-                  Obx(() => _buildDrawerItem(9, Icons.receipt_long, 'Transactions', controller, context)),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'B',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2196F3),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Obx(() {
+                    final brandName = controller.userProfile['profile']?['company_name']
+                        ?? controller.dashboardData['brand_name']
+                        ?? controller.dashboardData['user']?['name']
+                        ?? 'Brand';
+                    final email = controller.dashboardData['user']?['email'] ?? '';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          brandName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          email,
+                          style: const TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ],
+                    );
+                  }),
                 ],
               ),
             ),
