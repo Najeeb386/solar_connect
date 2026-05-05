@@ -28,8 +28,7 @@ void main() async {
   // 🟡 TEMPORARY: Enable mock API for testing
   // This provides sample data when the real API is unavailable
   // To use real API, comment this line and set your server URL above
-  ApiClient().setCustomApiUrl('https://httpbin.org');
-
+  ApiClient().setCustomApiUrl('mock://api');
   if (storage.read('token') != null) {
     final user = storage.read('user');
     if (user != null && user['role'] != null) {

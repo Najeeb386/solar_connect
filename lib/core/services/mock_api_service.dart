@@ -216,8 +216,8 @@ class MockApiService {
 
   // Check if we should use mock data
   bool shouldUseMockData() {
-    // Use mock data if API URL is httpbin.org (test mode)
+    // Use mock data if API URL starts with mock:// (test mode)
     final apiUrl = _storage.read('api_base_url') ?? 'https://solarpartner.pk/api';
-    return apiUrl.contains('httpbin.org');
+    return apiUrl.startsWith('mock://');
   }
 }

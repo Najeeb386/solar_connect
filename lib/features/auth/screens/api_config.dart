@@ -102,6 +102,7 @@ class _ApiConfigPageState extends State<ApiConfigPage> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+            _buildPresetButton('Mock API (Test)', 'mock://api'),
             _buildPresetButton('Local (Android)', 'http://10.0.2.2:8000/api'),
             _buildPresetButton('Local (iOS)', 'http://localhost:8000/api'),
             _buildPresetButton('Staging', 'https://staging.solarpartner.pk/api'),

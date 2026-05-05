@@ -10,6 +10,7 @@ import 'wallet.dart';
 import 'nearby_shops.dart';
 import 'installer_program.dart';
 import 'qr_reward.dart';
+import 'claim_history.dart';
 import 'controllers/installer_controller.dart';
 
 final List<Widget> _pages = [
@@ -21,6 +22,7 @@ final List<Widget> _pages = [
   const NearbyShopsPage(),
   const InstallerProgramPage(),
   const QRRewardPage(),
+  const ClaimHistoryPage(),
 ];
 
 class InstallerDashboard extends StatelessWidget {
@@ -185,6 +187,15 @@ class InstallerDashboard extends StatelessWidget {
                 2,
                 Icons.assignment,
                 'My Jobs',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                3,
+                Icons.person,
+                'My Profile',
                 controller,
                 context,
               ),
@@ -409,6 +420,7 @@ class DashboardHome extends StatelessWidget {
               ),
             );
           }
+          print('[DashboardHome] Dashboard has data, showing content');
           return RefreshIndicator(
             onRefresh: controller.fetchDashboard,
             child: SingleChildScrollView(

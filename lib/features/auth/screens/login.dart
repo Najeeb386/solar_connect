@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:solar_partner/features/auth/controllers/auth_controller.dart';
 import 'signup.dart';
+import 'api_config.dart';
+import 'mock_api_test.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -22,10 +24,22 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 60),
 
                 Center(
-                  child: Image.asset(
-                    'assets/icons/app_icon.png',
-                    width: 120,
-                    height: 120,
+                  child: GestureDetector(
+                    onLongPress: () => Get.to(() => const ApiConfigPage()),
+                    onDoubleTap: () => Get.to(() => const MockApiTestPage()),
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFFFF3E0),
+                      ),
+                      child: const Icon(
+                        Icons.wb_sunny_rounded,
+                        size: 40,
+                        color: Color(0xFFFF8F00),
+                      ),
+                    ),
                   ),
                 ),
 
