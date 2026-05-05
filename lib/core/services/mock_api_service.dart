@@ -205,6 +205,133 @@ class MockApiService {
           ]
         };
 
+      // Brand endpoints
+      case '/brand/dashboard':
+        return {
+          'success': true,
+          'message': 'Brand dashboard loaded',
+          'data': {
+            'user': {
+              'id': 1,
+              'name': 'Brand Manager',
+              'email': 'brand@test.com',
+              'profile_photo': null
+            },
+            'stats': {
+              'total_programs': 5,
+              'active_programs': 3,
+              'total_claims': 25,
+              'pending_claims': 8
+            },
+            'brand_name': 'SolarTech Solutions'
+          }
+        };
+
+      case '/brand/profile':
+        return {
+          'success': true,
+          'message': 'Profile retrieved',
+          'data': {
+            'user': {
+              'id': 1,
+              'name': 'Brand Manager',
+              'email': 'brand@test.com',
+              'profile_photo': null
+            },
+            'profile': {
+              'company_name': 'SolarTech Solutions',
+              'description': 'Leading solar panel manufacturer',
+              'phone': '+92-300-1234567',
+              'address': 'Lahore, Pakistan'
+            }
+          }
+        };
+
+      case '/brand/notifications':
+        return {
+          'success': true,
+          'message': 'Notifications retrieved',
+          'data': [
+            {
+              'id': 1,
+              'title': 'New Claim Submitted',
+              'message': 'A new product claim has been submitted for your program.',
+              'created_at': '2026-05-02T10:00:00Z',
+              'read': false
+            },
+            {
+              'id': 2,
+              'title': 'Program Expiring Soon',
+              'message': 'Your solar panel program expires in 7 days.',
+              'created_at': '2026-05-01T14:30:00Z',
+              'read': true
+            }
+          ]
+        };
+
+      case '/shopkeeper/dashboard':
+        return {
+          'success': true,
+          'message': 'Shopkeeper dashboard loaded',
+          'data': {
+            'user': {
+              'id': 1,
+              'name': 'Shop Owner',
+              'email': 'shop@test.com',
+              'profile_photo': null
+            },
+            'stats': {
+              'total_products': 15,
+              'active_products': 12,
+              'total_sales': 45,
+              'pending_orders': 3
+            },
+            'shop_name': 'Solar Shop Lahore'
+          }
+        };
+
+      case '/shopkeeper/profile':
+        return {
+          'success': true,
+          'message': 'Profile retrieved',
+          'data': {
+            'user': {
+              'id': 1,
+              'name': 'Shop Owner',
+              'email': 'shop@test.com',
+              'profile_photo': null
+            },
+            'profile': {
+              'company_name': 'Solar Shop Lahore',
+              'description': 'Authorized solar products dealer',
+              'phone': '+92-301-7654321',
+              'address': 'Gulberg, Lahore, Pakistan'
+            }
+          }
+        };
+
+      case '/shopkeeper/notifications':
+        return {
+          'success': true,
+          'message': 'Notifications retrieved',
+          'data': [
+            {
+              'id': 1,
+              'title': 'New Product Available',
+              'message': 'New solar panels are now available for order.',
+              'created_at': '2026-05-02T09:00:00Z',
+              'read': false
+            },
+            {
+              'id': 2,
+              'title': 'Order Shipped',
+              'message': 'Your order #12345 has been shipped.',
+              'created_at': '2026-05-01T16:45:00Z',
+              'read': true
+            }
+          ]
+        };
+
       default:
         return {
           'success': false,
