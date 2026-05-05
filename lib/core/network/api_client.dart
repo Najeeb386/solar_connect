@@ -83,14 +83,49 @@ class ApiClient {
   }
 
   Future<Response> put(String path, {dynamic data}) async {
+    // Check if we should use mock data (when using mock:// scheme)
+    if (baseUrl.startsWith('mock://')) {
+      final mockResponse = MockApiService().getMockResponse(path, requestData: data as Map<String, dynamic>?);
+      return Response(
+        requestOptions: RequestOptions(path: path),
+        statusCode: 200,
+        data: mockResponse,
+      );
+    }
+
     return await _dio.put(path, data: data);
   }
 
   Future<Response> delete(String path) async {
+    // Check if we should use mock data (when using mock:// scheme)
+    if (baseUrl.startsWith('mock://')) {
+      final mockResponse = MockApiService().getMockResponse(path);
+      return Response(
+        requestOptions: RequestOptions(path: path),
+        statusCode: 200,
+        data: mockResponse,
+      );
+    }
+
     return await _dio.delete(path);
   }
 
   Future<Response> postFormData(String path, FormData data) async {
+    // Check if we should use mock data (when using mock:// scheme)
+    if (baseUrl.startsWith('mock://')) {
+      // For form data, convert fields and files to a map
+      final requestData = Map<String, dynamic>.fromEntries(data.fields);
+      data.files.forEach((file) {
+        requestData[file.key] = file.value.filename ?? 'mock_file'; // mock filename
+      });
+      final mockResponse = MockApiService().getMockResponse(path, requestData: requestData);
+      return Response(
+        requestOptions: RequestOptions(path: path),
+        statusCode: 200,
+        data: mockResponse,
+      );
+    }
+
     return await _dio.post(
       path,
       data: data,

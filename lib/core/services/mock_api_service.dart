@@ -250,7 +250,8 @@ class MockApiService {
             }
           }
         }
-      } else if (endpoint == '/brand/products') {
+      } else if (endpoint == '/brand/products' && requestData == null) {
+        // GET products
         return {
           'success': true,
           'message': 'Products retrieved',
@@ -260,37 +261,71 @@ class MockApiService {
               'product_name': 'Solar Panel 400W',
               'product_series': 'Premium Series',
               'description': 'High-efficiency solar panel for residential use',
-              'photo': null
+              'photo': 'https://via.placeholder.com/150/4CAF50/FFFFFF?text=400W'
             },
             {
               'id': 2,
               'product_name': 'Solar Panel 500W',
               'product_series': 'Ultra Series',
               'description': 'Ultra-high efficiency solar panel',
-              'photo': null
+              'photo': 'https://via.placeholder.com/150/2196F3/FFFFFF?text=500W'
             },
             {
               'id': 3,
               'product_name': 'Inverter 5KW',
               'product_series': 'Power Series',
               'description': '5KW solar inverter with MPPT technology',
-              'photo': null
+              'photo': 'https://via.placeholder.com/150/FF9800/FFFFFF?text=5KW'
             },
             {
               'id': 4,
               'product_name': 'Battery 10KWh',
               'product_series': 'Storage Series',
               'description': '10KWh lithium-ion battery storage system',
-              'photo': null
+              'photo': 'https://via.placeholder.com/150/9C27B0/FFFFFF?text=10KWh'
             },
             {
               'id': 5,
               'product_name': 'Solar Panel 300W',
               'product_series': 'Economy Series',
               'description': 'Cost-effective solar panel for basic installations',
-              'photo': null
+              'photo': 'https://via.placeholder.com/150/607D8B/FFFFFF?text=300W'
             }
           ]
+        };
+      } else if (endpoint == '/brand/products' && requestData != null) {
+        // POST create product
+        final newId = 6;
+        final created = Map<String, dynamic>.from(requestData);
+        created['id'] = newId;
+        created.remove('_method'); // remove if present
+        created['photo'] = 'https://via.placeholder.com/150/4CAF50/FFFFFF?text=New+Product';
+        return {
+          'success': true,
+          'message': 'Product created successfully',
+          'data': created
+        };
+      } else if (endpoint.startsWith('/brand/products/') && requestData != null) {
+        // POST update product (with _method PUT)
+        final parts = endpoint.split('/');
+        final productId = int.tryParse(parts.last);
+        if (productId != null) {
+          final updated = Map<String, dynamic>.from(requestData);
+          updated['id'] = productId;
+          updated.remove('_method');
+          updated['photo'] = 'https://via.placeholder.com/150/FF5722/FFFFFF?text=Updated';
+          return {
+            'success': true,
+            'message': 'Product updated successfully',
+            'data': updated
+          };
+        }
+      } else if (endpoint.startsWith('/brand/products/') && requestData == null) {
+        // DELETE product
+        return {
+          'success': true,
+          'message': 'Product deleted successfully',
+          'data': null
         };
       }
       return {
