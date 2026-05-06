@@ -18,6 +18,9 @@ class _NearbyShopsPageState extends State<NearbyShopsPage> {
 
   String _searchQuery = '';
   bool _showMap = false;
+  bool _isGrid = false;
+  int _currentPage = 0;
+  static const int _pageSize = 10;
   Position? _myPosition;
   Map? _selectedShop; // shop tapped on map
 
@@ -106,13 +109,25 @@ class _NearbyShopsPageState extends State<NearbyShopsPage> {
   // ── helpers ──────────────────────────────────────────────────────────────────
 
   List<Map> _filtered(List shops) {
-    if (_searchQuery.isEmpty) return shops.cast<Map>();
+    // Only shopkeeper accounts
+    var list = shops.cast<Map>().where((s) {
+      final role = (s['role'] ?? s['user_role'] ?? 'shopkeeper').toString().toLowerCase();
+      return role == 'shopkeeper' || role.contains('shop') || role.isEmpty;
+    }).toList();
+    if (_searchQuery.isEmpty) return list;
     final q = _searchQuery.toLowerCase();
-    return shops.cast<Map>().where((s) {
+    return list.where((s) {
       final name = (s['shop_name'] ?? s['name'] ?? '').toString().toLowerCase();
       final city = (s['city'] ?? '').toString().toLowerCase();
       return name.contains(q) || city.contains(q);
     }).toList();
+  }
+
+  List<Map> _paginated(List<Map> all) {
+    final start = _currentPage * _pageSize;
+    final end = (start + _pageSize).clamp(0, all.length);
+    if (start >= all.length) return [];
+    return all.sublist(start, end);
   }
 
   // Default center: Pakistan (Lahore) when no GPS
@@ -210,6 +225,25 @@ class _NearbyShopsPageState extends State<NearbyShopsPage> {
                     tooltip: 'Refresh',
                   ),
                 const SizedBox(width: 4),
+                // Grid/List toggle (only in list mode)
+                if (!_showMap) ...[
+                  GestureDetector(
+                    onTap: () => setState(() { _isGrid = !_isGrid; _currentPage = 0; }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 38, height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _isGrid ? Icons.view_list : Icons.grid_view,
+                        color: const Color(0xFFFF8F00), size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
                 // Map icon toggle button
                 GestureDetector(
                   onTap: () {
@@ -323,16 +357,137 @@ class _NearbyShopsPageState extends State<NearbyShopsPage> {
 
   // ── LIST VIEW ────────────────────────────────────────────────────────────────
 
-  Widget _buildList(List<Map> shops, InstallerController controller) {
+  Widget _buildList(List<Map> allShops, InstallerController controller) {
+    final totalPages = (allShops.length / _pageSize).ceil();
+    final pageShops = _paginated(allShops);
+    final showPagination = allShops.length > _pageSize;
+
     return RefreshIndicator(
-      onRefresh: () => controller.fetchNearbyShops(
-        latitude: _myPosition?.latitude,
-        longitude: _myPosition?.longitude,
+      onRefresh: () async {
+        setState(() => _currentPage = 0);
+        await controller.fetchNearbyShops(
+          latitude: _myPosition?.latitude,
+          longitude: _myPosition?.longitude,
+        );
+      },
+      child: Column(
+        children: [
+          Expanded(
+            child: _isGrid
+                ? GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.85,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: pageShops.length,
+                    itemBuilder: (_, i) => _buildShopCardGrid(pageShops[i]),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: pageShops.length,
+                    itemBuilder: (_, i) => _buildShopCard(pageShops[i]),
+                  ),
+          ),
+          if (showPagination)
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _currentPage > 0
+                        ? () => setState(() => _currentPage--)
+                        : null,
+                    icon: const Icon(Icons.chevron_left),
+                    label: const Text('Prev'),
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF8F00)),
+                  ),
+                  Text(
+                    'Page ${_currentPage + 1} / $totalPages  (${allShops.length} shops)',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  TextButton.icon(
+                    onPressed: _currentPage < totalPages - 1
+                        ? () => setState(() => _currentPage++)
+                        : null,
+                    icon: const Icon(Icons.chevron_right),
+                    label: const Text('Next'),
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF8F00)),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: shops.length,
-        itemBuilder: (context, index) => _buildShopCard(shops[index]),
+    );
+  }
+
+  Widget _buildShopCardGrid(Map shop) {
+    final name = shop['shop_name'] ?? shop['name'] ?? 'Shop';
+    final city = shop['city'] ?? '';
+    final distanceKm = shop['distance_km'];
+    final activeJobs = shop['active_jobs_count'] ?? 0;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 52, height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(child: Text(initial,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFF8F00)))),
+          ),
+          const SizedBox(height: 8),
+          Text(name,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+              textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+          if (city.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(city, style: const TextStyle(color: Colors.grey, fontSize: 11),
+                textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (distanceKm != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF8F00).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('$distanceKm km',
+                      style: const TextStyle(color: Color(0xFFFF8F00), fontSize: 10, fontWeight: FontWeight.w600)),
+                )
+              else const SizedBox(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('$activeJobs Jobs',
+                    style: const TextStyle(color: Color(0xFF4CAF50), fontSize: 10, fontWeight: FontWeight.w500)),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

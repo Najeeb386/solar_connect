@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'controllers/brand_controller.dart';
 
 class BrandProfilePage extends StatefulWidget {
@@ -43,6 +44,86 @@ class _BrandProfilePageState extends State<BrandProfilePage>
     _descriptionController.text = profile['description'] ?? '';
   }
 
+  Future<void> _pickPhoto(BrandController controller) async {
+    final picker = ImagePicker();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF2196F3)),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFF2196F3)),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final image = await picker.pickImage(source: source, imageQuality: 80);
+    if (image != null) controller.uploadPhoto(image);
+  }
+
+  Widget _buildPhotoAvatar(Map user, String initial, BrandController controller) {
+    final photoUrl = user['profile_photo']?.toString() ?? '';
+    return GestureDetector(
+      onTap: () => _pickPhoto(controller),
+      child: Stack(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: const BoxDecoration(
+              color: Color(0xFFE3F2FD),
+              shape: BoxShape.circle,
+            ),
+            child: photoUrl.isNotEmpty
+                ? ClipOval(
+                    child: Image.network(
+                      photoUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(initial,
+                            style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2196F3))),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Text(initial,
+                        style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2196F3)))),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: const Icon(Icons.camera_alt, size: 10, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final BrandController controller = Get.find<BrandController>();
@@ -69,14 +150,7 @@ class _BrandProfilePageState extends State<BrandProfilePage>
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
                 child: Row(
                   children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: const BoxDecoration(color: Color(0xFFE3F2FD), shape: BoxShape.circle),
-                      child: Center(
-                        child: Text(initial, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
-                      ),
-                    ),
+                    _buildPhotoAvatar(user, initial, controller),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(

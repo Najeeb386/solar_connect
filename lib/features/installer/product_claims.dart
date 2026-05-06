@@ -14,6 +14,9 @@ class ProductClaimsPage extends StatefulWidget {
 class _ProductClaimsPageState extends State<ProductClaimsPage> {
   final InstallerController controller = Get.find<InstallerController>();
   String _selectedFilter = 'all';
+  bool _isGrid = false;
+  int _currentPage = 0;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
@@ -70,12 +73,33 @@ class _ProductClaimsPageState extends State<ProductClaimsPage> {
             ),
           ),
           const SizedBox(width: 16),
-          const Text(
-            'My Claims',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          const Expanded(
+            child: Text(
+              'My Claims',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() {
+              _isGrid = !_isGrid;
+              _currentPage = 0;
+            }),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _isGrid ? Icons.view_list : Icons.grid_view,
+                color: const Color(0xFF3B82F6),
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -107,7 +131,10 @@ class _ProductClaimsPageState extends State<ProductClaimsPage> {
     final isSelected = _selectedFilter == value;
     return GestureDetector(
       onTap: () async {
-        setState(() => _selectedFilter = value);
+        setState(() {
+          _selectedFilter = value;
+          _currentPage = 0;
+        });
         await _loadClaims();
       },
       child: Container(
@@ -138,8 +165,9 @@ class _ProductClaimsPageState extends State<ProductClaimsPage> {
       }
 
       final filteredClaims = _selectedFilter == 'all'
-          ? controller.productClaims
+          ? controller.productClaims.cast<Map>().toList()
           : controller.productClaims
+                .cast<Map>()
                 .where((claim) => claim['status'] == _selectedFilter)
                 .toList();
 
@@ -159,24 +187,171 @@ class _ProductClaimsPageState extends State<ProductClaimsPage> {
         );
       }
 
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: filteredClaims.length,
-        itemBuilder: (context, index) {
-          final claim = filteredClaims[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildClaimCard(
-              title: claim['product_name'] ?? 'Unknown Product',
-              program: claim['program_title'] ?? 'Unknown Program',
-              status: claim['status'] ?? 'unknown',
-              date: claim['created_at'] ?? 'Unknown date',
-              rejection: claim['rejection_reason'],
+      final totalPages = (filteredClaims.length / _pageSize).ceil();
+      final start = _currentPage * _pageSize;
+      final end = (start + _pageSize).clamp(0, filteredClaims.length);
+      final paged = filteredClaims.sublist(start, end);
+      final showPagination = filteredClaims.length > _pageSize;
+
+      return Column(
+        children: [
+          Expanded(
+            child: _isGrid
+                ? GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.85,
+                    ),
+                    itemCount: paged.length,
+                    itemBuilder: (context, i) =>
+                        _buildClaimCardGrid(paged[i]),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: paged.length,
+                    itemBuilder: (context, i) {
+                      final claim = paged[i];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildClaimCard(
+                          title: claim['product_name'] ?? 'Unknown Product',
+                          program:
+                              claim['program_title'] ?? 'Unknown Program',
+                          status: claim['status'] ?? 'unknown',
+                          date: claim['created_at'] ?? 'Unknown date',
+                          rejection: claim['rejection_reason'],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          if (showPagination)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _currentPage > 0
+                        ? () => setState(() => _currentPage--)
+                        : null,
+                    icon: const Icon(Icons.chevron_left, size: 18),
+                    label: const Text('Prev'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF3B82F6),
+                    ),
+                  ),
+                  Text(
+                    'Page ${_currentPage + 1} of $totalPages',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  TextButton.icon(
+                    onPressed: _currentPage < totalPages - 1
+                        ? () => setState(() => _currentPage++)
+                        : null,
+                    icon: const Icon(Icons.chevron_right, size: 18),
+                    label: const Text('Next'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF3B82F6),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          );
-        },
+        ],
       );
     });
+  }
+
+  Widget _buildClaimCardGrid(Map claim) {
+    final status = (claim['status'] ?? 'unknown').toString();
+    final statusColor = status == 'pending'
+        ? Colors.amber
+        : status == 'approved'
+            ? Colors.green
+            : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                status.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            claim['product_name'] ?? 'Unknown Product',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            claim['program_title'] ?? 'Unknown Program',
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const Spacer(),
+          Text(
+            claim['created_at'] ?? '',
+            style: const TextStyle(fontSize: 10, color: Colors.grey),
+          ),
+          if (claim['rejection_reason'] != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.info, size: 12, color: Colors.red),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    claim['rejection_reason'].toString(),
+                    style: const TextStyle(fontSize: 10, color: Colors.red),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildClaimCard({

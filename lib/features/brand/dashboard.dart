@@ -8,17 +8,21 @@ import 'announcements.dart';
 import 'manuals.dart';
 import 'analytics.dart';
 import 'brand_profile.dart';
+import 'brand_withdrawals.dart';
+import 'brand_transactions.dart';
 import 'controllers/brand_controller.dart';
 
 final List<Widget> _pages = [
-  const BrandDashboardHome(),
-  const ProgramsPage(),
-  const ProductsScreen(),
-  const ClaimsPage(),
-  const AnnouncementsPage(),
-  const ManualsPage(),
-  const AnalyticsPage(),
-  const BrandProfilePage(),
+  const BrandDashboardHome(),      // 0
+  const ProgramsPage(),            // 1
+  const ProductsScreen(),          // 2
+  const ClaimsPage(),              // 3
+  const AnnouncementsPage(),       // 4
+  const ManualsPage(),             // 5
+  const AnalyticsPage(),           // 6
+  const BrandProfilePage(),        // 7
+  const BrandWithdrawalsPage(),    // 8
+  const BrandTransactionsPage(),   // 9
 ];
 
 class BrandDashboard extends StatelessWidget {
@@ -63,142 +67,93 @@ class BrandDashboard extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'B',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2196F3),
+              child: Obx(() {
+                final brandName = controller.userProfile['profile']?['company_name']
+                    ?? controller.dashboardData['brand_name']
+                    ?? controller.dashboardData['user']?['name']
+                    ?? 'Brand';
+                final email = controller.dashboardData['user']?['email'] ?? '';
+                final photoUrl = (controller.userProfile['user']?['profile_photo'] ?? '').toString();
+                final initial = brandName.isNotEmpty ? brandName[0].toUpperCase() : 'B';
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        controller.changePage(7);
+                        Navigator.pop(Get.context!);
+                      },
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: ClipOval(
+                          child: photoUrl.isNotEmpty
+                              ? Image.network(
+                                  photoUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Center(
+                                    child: Text(initial,
+                                        style: const TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF2196F3))),
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(initial,
+                                      style: const TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF2196F3))),
+                                ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Obx(() {
-                    final brandName = controller.userProfile['profile']?['company_name']
-                        ?? controller.dashboardData['brand_name']
-                        ?? controller.dashboardData['user']?['name']
-                        ?? 'Brand';
-                    final email = controller.dashboardData['user']?['email'] ?? '';
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          brandName,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          email,
-                          style: const TextStyle(fontSize: 14, color: Colors.white70),
-                        ),
-                      ],
-                    );
-                  }),
+                    const SizedBox(height: 12),
+                    Text(
+                      brandName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      email,
+                      style: const TextStyle(fontSize: 13, color: Colors.white70),
+                    ),
+                  ],
+                );
+              }),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: [
+                  Obx(() => _buildDrawerItem(0, Icons.dashboard, 'Dashboard', controller, context)),
+                  Obx(() => _buildDrawerItem(1, Icons.card_giftcard, 'Programs', controller, context)),
+                  Obx(() => _buildDrawerItem(2, Icons.shopping_bag, 'Products', controller, context)),
+                  Obx(() => _buildDrawerItem(3, Icons.receipt_long, 'Claims', controller, context)),
+                  Obx(() => _buildDrawerItem(4, Icons.campaign, 'Announcements', controller, context)),
+                  Obx(() => _buildDrawerItem(5, Icons.folder, 'Manuals', controller, context)),
+                  Obx(() => _buildDrawerItem(6, Icons.analytics, 'Analytics', controller, context)),
+                  Obx(() => _buildDrawerItem(7, Icons.person, 'My Profile', controller, context)),
+                  Obx(() => _buildDrawerItem(8, Icons.money_off, 'Withdrawals', controller, context)),
+                  Obx(() => _buildDrawerItem(9, Icons.receipt_long, 'Transactions', controller, context)),
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            Obx(
-              () => _buildDrawerItem(
-                0,
-                Icons.dashboard,
-                'Dashboard',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                1,
-                Icons.card_giftcard,
-                'Programs',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                2,
-                Icons.shopping_bag,
-                'Products',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                3,
-                Icons.receipt_long,
-                'Claims',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                4,
-                Icons.campaign,
-                'Announcements',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                5,
-                Icons.folder,
-                'Manuals',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                6,
-                Icons.analytics,
-                'Analytics',
-                controller,
-                context,
-              ),
-            ),
-            Obx(
-              () => _buildDrawerItem(
-                7,
-                Icons.person,
-                'My Profile',
-                controller,
-                context,
-              ),
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: ListTile(
-                leading: const Icon(Icons.logout, color: Color(0xFFF44336)),
-                title: const Text(
-                  'Logout',
-                  style: TextStyle(color: Color(0xFFF44336)),
-                ),
-                onTap: () {
-                  Get.offAllNamed('/login');
-                },
-              ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Color(0xFFF44336)),
+              title: const Text('Logout', style: TextStyle(color: Color(0xFFF44336))),
+              onTap: () => Get.offAllNamed('/login'),
             ),
           ],
         ),
@@ -278,70 +233,88 @@ class BrandDashboardHome extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, BrandController controller) {
-    final userData = controller.dashboardData['user'];
-    final userName = userData?['name'] ?? 'Brand';
-    final companyName = userData?['company_name'] ?? '';
-    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'B';
+    return Obx(() {
+      final userData = controller.dashboardData['user'];
+      final companyName = controller.userProfile['profile']?['company_name']
+          ?? userData?['name'] ?? 'Brand';
+      final email = userData?['email'] ?? '';
+      final photoUrl = (controller.userProfile['user']?['profile_photo'] ?? '').toString();
+      final initial = companyName.isNotEmpty ? companyName[0].toUpperCase() : 'B';
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Scaffold.of(context).openDrawer(),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(color: Colors.white),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Scaffold.of(context).openDrawer(),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.menu, color: Color(0xFF2196F3)),
               ),
-              child: const Icon(Icons.menu, color: Color(0xFF2196F3)),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome, $companyName',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome, $companyName',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  userData?['email'] ?? '',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    email,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE3F2FD),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                initial,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2196F3),
+            GestureDetector(
+              onTap: () => controller.changePage(7),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE3F2FD),
+                  shape: BoxShape.circle,
+                ),
+                child: ClipOval(
+                  child: photoUrl.isNotEmpty
+                      ? Image.network(
+                          photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(initial,
+                                style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2196F3))),
+                          ),
+                        )
+                      : Center(
+                          child: Text(initial,
+                              style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2196F3))),
+                        ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildStatsCards(BrandController controller) {

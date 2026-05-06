@@ -15,6 +15,7 @@ class _ManualsPageState extends State<ManualsPage> {
   bool _showUploadForm = false;
   String? _selectedFilePath;
   String? _selectedFileName;
+  bool _isUploading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +44,7 @@ class _ManualsPageState extends State<ManualsPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final BrandController controller = Get.find<BrandController>();
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(color: Colors.white),
@@ -61,7 +63,48 @@ class _ManualsPageState extends State<ManualsPage> {
             ),
           ),
           const SizedBox(width: 16),
-          const Text('Manuals', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const Expanded(
+            child: Text('Manuals',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
+          ),
+          Obx(() {
+            final photoUrl =
+                (controller.userProfile['user']?['profile_photo'] ?? '')
+                    .toString();
+            final name =
+                (controller.userProfile['profile']?['company_name'] ??
+                        controller.dashboardData['user']?['name'] ??
+                        'B')
+                    .toString();
+            final initial = name.isNotEmpty ? name[0].toUpperCase() : 'B';
+            return GestureDetector(
+              onTap: () => controller.changePage(7),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFE3F2FD), shape: BoxShape.circle),
+                child: ClipOval(
+                  child: photoUrl.isNotEmpty
+                      ? Image.network(photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                              child: Text(initial,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2196F3)))))
+                      : Center(
+                          child: Text(initial,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2196F3)))),
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -190,32 +233,43 @@ class _ManualsPageState extends State<ManualsPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (!formKey.currentState!.validate()) return;
-                        if (_selectedFilePath == null) {
-                          Get.snackbar('Error', 'Please select a PDF file',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.red.withValues(alpha: 0.8));
-                          return;
-                        }
-
-                        final success = await controller.uploadManual(titleController.text, _selectedFilePath!);
-                        if (success) {
-                          await Future.delayed(const Duration(milliseconds: 500));
-                          setState(() {
-                            _showUploadForm = false;
-                            _selectedFilePath = null;
-                            _selectedFileName = null;
-                          });
-                          titleController.clear();
-                        }
-                      },
+                      onPressed: _isUploading
+                          ? null
+                          : () async {
+                              if (!formKey.currentState!.validate()) return;
+                              if (_selectedFilePath == null) {
+                                Get.snackbar('Error', 'Please select a PDF file',
+                                    snackPosition: SnackPosition.BOTTOM,
+                                    backgroundColor:
+                                        Colors.red.withValues(alpha: 0.8));
+                                return;
+                              }
+                              setState(() => _isUploading = true);
+                              final success = await controller.uploadManual(
+                                  titleController.text, _selectedFilePath!);
+                              if (mounted) setState(() => _isUploading = false);
+                              if (success) {
+                                setState(() {
+                                  _showUploadForm = false;
+                                  _selectedFilePath = null;
+                                  _selectedFileName = null;
+                                });
+                                titleController.clear();
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2196F3),
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey[300],
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Upload'),
+                      child: _isUploading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Text('Upload'),
                     ),
                   ),
                 ],
@@ -299,13 +353,28 @@ class _ManualsPageState extends State<ManualsPage> {
                   if (fileUrl != null)
                     IconButton(
                       onPressed: () async {
-                        final uri = Uri.parse(fileUrl);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        } else {
+                        // Make URL absolute if relative
+                        final absUrl = fileUrl.startsWith('http')
+                            ? fileUrl
+                            : 'https://solarpartner.pk$fileUrl';
+                        final uri = Uri.parse(absUrl);
+                        try {
+                          final launched = await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                          if (!launched) {
+                            Get.snackbar('Error', 'Cannot open file',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor:
+                                    Colors.red.withValues(alpha: 0.8),
+                                colorText: Colors.white);
+                          }
+                        } catch (_) {
                           Get.snackbar('Error', 'Cannot open file',
                               snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.red.withValues(alpha: 0.8),
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.8),
                               colorText: Colors.white);
                         }
                       },
