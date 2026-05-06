@@ -37,6 +37,16 @@ class BrandController extends GetxController {
     'rejected': 0,
   }.obs;
 
+  // Withdrawals
+  final RxList withdrawals = [].obs;
+  final RxBool withdrawalsLoading = false.obs;
+  final RxInt pendingWithdrawalCount = 0.obs;
+
+  // Transactions
+  final RxList brandTransactions = [].obs;
+  final RxBool transactionsLoading = false.obs;
+  final RxMap transactionSummary = <String, dynamic>{}.obs;
+
   final RxInt currentIndex = 0.obs;
   final RxBool isLoading = false.obs;
 
@@ -78,6 +88,12 @@ class BrandController extends GetxController {
         break;
       case 7:
         // Profile - nothing to load
+        break;
+      case 8:
+        fetchWithdrawals(refresh: true);
+        break;
+      case 9:
+        if (brandTransactions.isEmpty) fetchTransactions();
         break;
     }
   }
@@ -850,6 +866,81 @@ class BrandController extends GetxController {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  Future<void> fetchWithdrawals({bool refresh = false}) async {
+    try {
+      if (refresh) withdrawals.clear();
+      withdrawalsLoading.value = true;
+      final res = await _service.getWithdrawals();
+      withdrawalsLoading.value = false;
+      if (res.success && res.data != null) {
+        final raw = res.data;
+        final list = (raw is Map ? (raw['data'] ?? []) : raw) as List?;
+        if (list != null) withdrawals.value = list;
+        pendingWithdrawalCount.value = (raw is Map ? (raw['pending_count'] ?? 0) : 0) as int;
+      }
+    } catch (e) {
+      withdrawalsLoading.value = false;
+    }
+  }
+
+  Future<bool> markWithdrawalPaid(int itemId) async {
+    try {
+      final res = await _service.markWithdrawalPaid(itemId);
+      if (res.success) {
+        await fetchWithdrawals(refresh: true);
+        Get.snackbar('Success', res.message ?? 'Payment confirmed',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white);
+        return true;
+      }
+      Get.snackbar('Error', res.message ?? 'Failed',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8));
+      return false;
+    } catch (e) {
+      Get.snackbar('Error', 'Connection failed',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.8));
+      return false;
+    }
+  }
+
+  Future<void> fetchTransactions({String? status}) async {
+    try {
+      transactionsLoading.value = true;
+      final res = await _service.getTransactions(status: status);
+      transactionsLoading.value = false;
+      if (res.success && res.data != null) {
+        final raw = res.data;
+        final list = (raw is Map ? (raw['data'] ?? []) : raw) as List?;
+        if (list != null) brandTransactions.value = list;
+        if (raw is Map && raw['summary'] != null) {
+          transactionSummary.value = Map<String, dynamic>.from(raw['summary'] as Map);
+        }
+      }
+    } catch (e) {
+      transactionsLoading.value = false;
+    }
+  }
+
+  Future<bool> uploadPhoto(dynamic image) async {
+    try {
+      final res = await _service.uploadPhoto(image);
+      if (res.success) {
+        await fetchProfile();
+        Get.snackbar('Success', 'Photo updated',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
     }
   }
 }

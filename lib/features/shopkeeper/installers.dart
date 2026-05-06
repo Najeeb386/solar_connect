@@ -13,6 +13,9 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
   final ShopkeeperController controller = Get.find<ShopkeeperController>();
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isGrid = false;
+  int _currentPage = 0;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
@@ -79,19 +82,76 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
                   );
                 }
 
-                return RefreshIndicator(
-                  color: const Color(0xFF9C27B0),
-                  onRefresh: () => controller.fetchInstallers(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final installer = Map<String, dynamic>.from(
-                          filtered[index] as Map);
-                      return _buildInstallerCard(installer);
-                    },
+                final totalPages =
+                    (filtered.length / _pageSize).ceil().clamp(1, 999);
+                final start = _currentPage * _pageSize;
+                final end =
+                    (start + _pageSize).clamp(0, filtered.length);
+                final paged = filtered.sublist(start, end);
+
+                return Column(children: [
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: const Color(0xFF9C27B0),
+                      onRefresh: () => controller.fetchInstallers(),
+                      child: _isGrid
+                          ? GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 0.72,
+                              ),
+                              itemCount: paged.length,
+                              itemBuilder: (ctx, i) =>
+                                  _buildInstallerCardGrid(
+                                      Map<String, dynamic>.from(
+                                          paged[i] as Map)),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(20),
+                              itemCount: paged.length,
+                              itemBuilder: (ctx, i) => _buildInstallerCard(
+                                  Map<String, dynamic>.from(
+                                      paged[i] as Map)),
+                            ),
+                    ),
                   ),
-                );
+                  if (filtered.length > _pageSize)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      color: Colors.white,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _currentPage > 0
+                                ? () => setState(() => _currentPage--)
+                                : null,
+                            icon: const Icon(Icons.chevron_left, size: 18),
+                            label: const Text('Prev'),
+                            style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF9C27B0)),
+                          ),
+                          Text('Page ${_currentPage + 1} of $totalPages',
+                              style: const TextStyle(
+                                  fontSize: 13, color: Colors.grey)),
+                          TextButton.icon(
+                            onPressed: _currentPage < totalPages - 1
+                                ? () => setState(() => _currentPage++)
+                                : null,
+                            icon: const Icon(Icons.chevron_right, size: 18),
+                            label: const Text('Next'),
+                            style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF9C27B0)),
+                          ),
+                        ],
+                      ),
+                    ),
+                ]);
               }),
             ),
           ],
@@ -128,11 +188,28 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87)),
-                Obx(() => Text(
-                    '${controller.installers.length} available',
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.grey))),
+                Obx(() => Text('${controller.installers.length} available',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey))),
               ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() {
+              _isGrid = !_isGrid;
+              _currentPage = 0;
+            }),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _isGrid ? Icons.view_list : Icons.grid_view,
+                color: const Color(0xFF9C27B0),
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -262,21 +339,37 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
             ]),
           ],
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => _showInstallerDetail(installer),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9C27B0),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+          Row(children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _showInstallerDetail(installer),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF9C27B0),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('View Profile',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w600)),
               ),
-              child: const Text('View Profile',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600)),
             ),
-          ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _showHireDialog(installer),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Hire Directly',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ]),
         ],
       ),
     );
@@ -436,6 +529,249 @@ class _ShopkeepersPageState extends State<ShopkeepersPage> {
               child: Text(value,
                   style: const TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w500))),
+        ],
+      ),
+    );
+  }
+
+  void _showHireDialog(Map<String, dynamic> installer) {
+    final installerId = installer['id'];
+    if (installerId == null) return;
+    final name = installer['name']?.toString() ?? 'Installer';
+
+    if (controller.jobs.isEmpty) {
+      controller.fetchJobs(refresh: true);
+    }
+
+    // Show job picker
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Hire $name',
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('Select an open job to assign:',
+                style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 12),
+            Obx(() {
+              final openJobs = controller.jobs
+                  .cast<Map>()
+                  .where((j) =>
+                      j['status'] == 'open' || j['status'] == 'active')
+                  .toList();
+              if (openJobs.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                      child: Text('No open jobs available',
+                          style: TextStyle(color: Colors.grey))),
+                );
+              }
+              return ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(Get.context!).size.height * 0.4),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: openJobs.length,
+                  itemBuilder: (ctx, i) {
+                    final job = openJobs[i];
+                    return ListTile(
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.work,
+                            color: Color(0xFF9C27B0), size: 18),
+                      ),
+                      title: Text(job['title']?.toString() ?? 'Job',
+                          style: const TextStyle(fontSize: 14)),
+                      subtitle: Text(
+                          'PKR ${job['budget'] ?? 'N/A'}',
+                          style: const TextStyle(fontSize: 12)),
+                      trailing: ElevatedButton(
+                        onPressed: () async {
+                          Get.back();
+                          final jobId = job['id'];
+                          if (jobId == null) return;
+                          await controller.hireInstaller(
+                            int.parse(jobId.toString()),
+                            int.parse(installerId.toString()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4CAF50),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('Hire',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12)),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 4),
+                    );
+                  },
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildInstallerCardGrid(Map<String, dynamic> installer) {
+    final name = installer['name']?.toString() ?? 'Installer';
+    final city = installer['city']?.toString() ?? '';
+    final skills = installer['skills']?.toString() ?? '';
+    final rating =
+        double.tryParse(installer['rating']?.toString() ?? '0') ?? 0.0;
+    final kycStatus = installer['kyc_status']?.toString() ?? '';
+    final isVerified = kycStatus == 'approved';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'I';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor:
+                  const Color(0xFF9C27B0).withValues(alpha: 0.1),
+              child: Text(initial,
+                  style: const TextStyle(
+                      color: Color(0xFF9C27B0),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Expanded(
+                      child: Text(name,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    if (isVerified)
+                      const Icon(Icons.verified,
+                          size: 12, color: Color(0xFF4CAF50)),
+                  ]),
+                  Row(children: [
+                    const Icon(Icons.star, size: 11, color: Colors.amber),
+                    const SizedBox(width: 2),
+                    Text(rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold)),
+                  ]),
+                ],
+              ),
+            ),
+          ]),
+          if (city.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(children: [
+              const Icon(Icons.location_on, size: 11, color: Colors.grey),
+              const SizedBox(width: 2),
+              Expanded(
+                  child: Text(city,
+                      style: const TextStyle(
+                          fontSize: 10, color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)),
+            ]),
+          ],
+          if (skills.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(skills,
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+          ],
+          const Spacer(),
+          Column(children: [
+            SizedBox(
+              width: double.infinity,
+              child: GestureDetector(
+                onTap: () => _showInstallerDetail(installer),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                      child: Text('View',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF9C27B0),
+                              fontWeight: FontWeight.w600))),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: double.infinity,
+              child: GestureDetector(
+                onTap: () => _showHireDialog(installer),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                      child: Text('Hire',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF4CAF50),
+                              fontWeight: FontWeight.w600))),
+                ),
+              ),
+            ),
+          ]),
         ],
       ),
     );

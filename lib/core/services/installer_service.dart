@@ -164,6 +164,18 @@ class InstallerService {
     }
   }
 
+  Future<ApiResponse> getWalletTransactions({int page = 1}) async {
+    try {
+      final response = await _client.get(
+        '/installer/wallet/transactions',
+        queryParams: {'page': page},
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
   Future<ApiResponse> withdraw(int paymentMethodId, double amount) async {
     try {
       final response = await _client.post(
@@ -329,6 +341,20 @@ class InstallerService {
 
       final response = await _client.get(
         '/installer/product-claims',
+        queryParams: queryParams,
+      );
+      return ApiResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      return ApiResponse.fromDioError(e);
+    }
+  }
+
+  Future<ApiResponse> getClaimHistory({String? status, int page = 1}) async {
+    try {
+      final queryParams = <String, dynamic>{'page': page};
+      if (status != null && status != 'all') queryParams['status'] = status;
+      final response = await _client.get(
+        '/installer/product-claims/history',
         queryParams: queryParams,
       );
       return ApiResponse.fromJson(response.data);
