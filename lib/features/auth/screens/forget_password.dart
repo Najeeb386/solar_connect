@@ -29,12 +29,23 @@ class ForgetPasswordPage extends StatelessWidget {
 
               // Logo
               Center(
-                child: Image.asset(
-                  'assets/icons/app_icon.png',
-                  width: 380,
-                  height: 150,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFFFF3E0),
+                  ),
+                  child: const Icon(
+                    Icons.wb_sunny_rounded,
+                    size: 40,
+                    color: Color(0xFFFF8F00),
+                  ),
                 ),
               ),
+
+              const SizedBox(height: 30),
+
               const Center(
                 child: Text(
                   "Solar Partner",

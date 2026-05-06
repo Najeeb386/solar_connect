@@ -53,6 +53,19 @@ class BrandDashboard extends StatelessWidget {
   }
 
   Widget _buildDrawer(BuildContext context, BrandController controller) {
+    final List<Map<String, dynamic>> menuItems = [
+      {'icon': Icons.home, 'title': 'Dashboard', 'index': 0},
+      {'icon': Icons.card_giftcard, 'title': 'Programs', 'index': 1},
+      {'icon': Icons.inventory, 'title': 'Products', 'index': 2},
+      {'icon': Icons.assignment, 'title': 'Claims', 'index': 3},
+      {'icon': Icons.campaign, 'title': 'Announcements', 'index': 4},
+      {'icon': Icons.menu_book, 'title': 'Manuals', 'index': 5},
+      {'icon': Icons.analytics, 'title': 'Analytics', 'index': 6},
+      {'icon': Icons.person, 'title': 'Profile', 'index': 7},
+      {'icon': Icons.account_balance_wallet, 'title': 'Withdrawals', 'index': 8},
+      {'icon': Icons.receipt, 'title': 'Transactions', 'index': 9},
+    ];
+
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -149,11 +162,92 @@ class BrandDashboard extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Color(0xFFF44336)),
-              title: const Text('Logout', style: TextStyle(color: Color(0xFFF44336))),
-              onTap: () => Get.offAllNamed('/login'),
+            const SizedBox(height: 10),
+            Obx(
+              () => _buildDrawerItem(
+                0,
+                Icons.dashboard,
+                'Dashboard',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                1,
+                Icons.card_giftcard,
+                'Programs',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                2,
+                Icons.shopping_bag,
+                'Products',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                3,
+                Icons.receipt_long,
+                'Claims',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                4,
+                Icons.campaign,
+                'Announcements',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                5,
+                Icons.folder,
+                'Manuals',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                6,
+                Icons.analytics,
+                'Analytics',
+                controller,
+                context,
+              ),
+            ),
+            Obx(
+              () => _buildDrawerItem(
+                7,
+                Icons.person,
+                'My Profile',
+                controller,
+                context,
+              ),
+            ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListTile(
+                leading: const Icon(Icons.logout, color: Color(0xFFF44336)),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Color(0xFFF44336)),
+                ),
+                onTap: () {
+                  Get.offAllNamed('/login');
+                },
+              ),
             ),
           ],
         ),
@@ -198,37 +292,34 @@ class BrandDashboardHome extends StatelessWidget {
   Widget build(BuildContext context) {
     final BrandController controller = Get.find<BrandController>();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF2196F3)),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: controller.fetchDashboard,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context, controller),
-                  const SizedBox(height: 16),
-                  _buildStatsCards(controller),
-                  const SizedBox(height: 20),
-                  _buildQuickLinks(context, controller),
-                  const SizedBox(height: 20),
-                  _buildRecentPrograms(controller),
-                  const SizedBox(height: 20),
-                  _buildRecentAnnouncements(controller),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
+    return SafeArea(
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF2196F3)),
           );
-        }),
-      ),
+        }
+        return RefreshIndicator(
+          onRefresh: controller.fetchDashboard,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, controller),
+                const SizedBox(height: 16),
+                _buildStatsCards(controller),
+                const SizedBox(height: 20),
+                _buildQuickLinks(context, controller),
+                const SizedBox(height: 20),
+                _buildRecentPrograms(controller),
+                const SizedBox(height: 20),
+                _buildRecentAnnouncements(controller),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -318,10 +409,11 @@ class BrandDashboardHome extends StatelessWidget {
   }
 
   Widget _buildStatsCards(BrandController controller) {
-    final totalPrograms = controller.dashboardData['programs_count'] ?? 0;
-    final activePrograms = controller.dashboardData['active_programs_count'] ?? 0;
-    final enrolledInstallers = controller.dashboardData['enrolled_installers_count'] ?? 0;
-    final completedEnrollments = controller.dashboardData['completed_enrollments'] ?? 0;
+    final stats = controller.dashboardData['stats'] ?? {};
+    final totalPrograms = stats['total_programs'] ?? 0;
+    final activePrograms = stats['active_programs'] ?? 0;
+    final totalClaims = stats['total_claims'] ?? 0;
+    final pendingClaims = stats['pending_claims'] ?? 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -331,19 +423,19 @@ class BrandDashboardHome extends StatelessWidget {
             child: _buildStatCard(
               Icons.card_giftcard,
               const Color(0xFF2196F3),
+              'Programs',
+              '$totalPrograms',
               'Total Programs',
-              '$totalPrograms / $activePrograms',
-              'Total / Active',
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              Icons.people,
+              Icons.pending_actions,
               const Color(0xFFFF9800),
-              'Enrollments',
-              '$enrolledInstallers / $completedEnrollments',
-              'Total / Completed',
+              'Claims',
+              '$totalClaims',
+              'Total / Pending: $pendingClaims',
             ),
           ),
         ],

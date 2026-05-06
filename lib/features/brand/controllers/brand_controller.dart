@@ -210,7 +210,10 @@ class BrandController extends GetxController {
     try {
       final res = await _service.createProgram(data);
       if (res.success) {
-        fetchPrograms(refresh: true); // refresh list before navigating back
+        // Add the created program to the list immediately for mock mode
+        if (res.data != null) {
+          programs.add(Map<String, dynamic>.from(res.data as Map));
+        }
         Get.back(); // auto-back to programs list
         Get.snackbar(
           'Created',
@@ -243,7 +246,11 @@ class BrandController extends GetxController {
     try {
       final res = await _service.updateProgram(programId, data);
       if (res.success) {
-        fetchPrograms(refresh: true); // refresh list before navigating back
+        // Update the program in the list immediately for mock mode
+        final index = programs.indexWhere((p) => p['id'] == programId);
+        if (index != -1 && res.data != null) {
+          programs[index] = Map<String, dynamic>.from(res.data as Map);
+        }
         Get.back(); // auto-back to programs list
         Get.snackbar(
           'Updated',
@@ -276,8 +283,8 @@ class BrandController extends GetxController {
     try {
       final res = await _service.deleteProgram(programId);
       if (res.success) {
-        await fetchPrograms(refresh: true);
-        await fetchDashboard();
+        // Remove the program from the list immediately for mock mode
+        programs.removeWhere((p) => p['id'] == programId);
         Get.snackbar(
           'Deleted',
           'Program deleted successfully',
@@ -552,7 +559,10 @@ class BrandController extends GetxController {
         image,
       );
       if (res.success) {
-        await fetchProducts(refresh: true);
+        // Add the created product to the list immediately for mock mode
+        if (res.data != null) {
+          products.add(Map<String, dynamic>.from(res.data as Map));
+        }
         Get.snackbar(
           'Created',
           res.message,
@@ -596,7 +606,11 @@ class BrandController extends GetxController {
         image,
       );
       if (res.success) {
-        await fetchProducts(refresh: true);
+        // Update the product in the list immediately for mock mode
+        final index = products.indexWhere((p) => p['id'] == productId);
+        if (index != -1 && res.data != null) {
+          products[index] = Map<String, dynamic>.from(res.data as Map);
+        }
         Get.snackbar(
           'Updated',
           res.message,
@@ -628,7 +642,8 @@ class BrandController extends GetxController {
     try {
       final res = await _service.deleteProduct(productId);
       if (res.success) {
-        await fetchProducts(refresh: true);
+        // Remove the product from the list immediately for mock mode
+        products.removeWhere((p) => p['id'] == productId);
         Get.snackbar(
           'Deleted',
           res.message ?? 'Product deleted successfully',
