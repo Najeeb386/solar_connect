@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:solar_partner/features/auth/controllers/auth_controller.dart';
 import 'signup.dart';
-import 'api_config.dart';
-import 'mock_api_test.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -24,22 +22,13 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 60),
 
                 Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFFFF3E0),
-                    ),
-                    child: const Icon(
-                      Icons.wb_sunny_rounded,
-                      size: 40,
-                      color: Color(0xFFFF8F00),
-                    ),
+                  child: Image.asset(
+                    'assets/icons/app_icon.png',
+                    width: 380,
+                    height: 150,
                   ),
                 ),
 
-                const SizedBox(height: 30),
 
                 const Center(
                   child: Text(
