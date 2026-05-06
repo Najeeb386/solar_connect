@@ -112,6 +112,9 @@ class InstallerController extends GetxController {
       case 7:
         if (enrolledPrograms.isEmpty) fetchEnrolledPrograms();
         break;
+      case 8:
+        if (productClaims.isEmpty) fetchProductClaims();
+        break;
     }
   }
 

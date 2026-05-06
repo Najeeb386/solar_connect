@@ -162,6 +162,27 @@ class _ProductsScreenState extends State<ProductsScreen> {
                               snackPosition: SnackPosition.BOTTOM);
                           return;
                         }
+                        if (_editingProductId != null) {
+                          // Show confirmation for edit
+                          final confirm = await Get.dialog<bool>(AlertDialog(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Save Changes'),
+                            content: const Text(
+                                'Are you sure you want to save these changes?'),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Get.back(result: false),
+                                  child: const Text('Cancel')),
+                              TextButton(
+                                onPressed: () => Get.back(result: true),
+                                child: const Text('Save',
+                                    style: TextStyle(color: _brandColor)),
+                              ),
+                            ],
+                          ));
+                          if (confirm != true) return;
+                        }
                         bool success = false;
                         if (_editingProductId == null) {
                           success = await controller.createProduct(

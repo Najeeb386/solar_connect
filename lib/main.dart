@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:solar_partner/core/network/api_client.dart';
 import 'package:solar_partner/features/auth/screens/login.dart';
 import 'package:solar_partner/features/auth/screens/signup.dart';
 import 'package:solar_partner/features/auth/controllers/auth_controller.dart';
@@ -18,6 +19,16 @@ void main() async {
   final storage = GetStorage();
   String initialRoute = '/login';
 
+  // 🔴 CRITICAL: API URL FIX - Production server is down
+  // Replace with your local Laravel server URL
+  // ApiClient().setCustomApiUrl('http://10.0.2.2:8000/api'); // Android emulator
+  // ApiClient().setCustomApiUrl('http://localhost:8000/api'); // iOS simulator
+  // ApiClient().setCustomApiUrl('http://192.168.1.XXX:8000/api'); // Your PC IP
+
+  // 🟡 TEMPORARY: Enable mock API for testing
+  // This provides sample data when the real API is unavailable
+  // To use real API, comment this line and set your server URL above
+  ApiClient().setCustomApiUrl('mock://api');
   if (storage.read('token') != null) {
     final user = storage.read('user');
     if (user != null && user['role'] != null) {
